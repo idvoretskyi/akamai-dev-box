@@ -44,6 +44,10 @@ backups_enabled = false
 # Firewall (set to false to skip firewall creation)
 create_firewall = true
 
+# Restrict SSH access to specific CIDRs (default: open to all)
+# allowed_ssh_cidrs_ipv4 = ["203.0.113.0/24"]
+# allowed_ssh_cidrs_ipv6 = ["2001:db8::/32"]
+
 # Optional: StackScript for automated configuration
 # stackscript_id = 123456
 # stackscript_data = {
