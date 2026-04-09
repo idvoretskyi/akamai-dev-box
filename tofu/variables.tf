@@ -85,6 +85,18 @@ variable "create_firewall" {
   default     = true
 }
 
+variable "allowed_ssh_cidrs_ipv4" {
+  description = "List of IPv4 CIDRs allowed to access SSH. Defaults to all addresses."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
+variable "allowed_ssh_cidrs_ipv6" {
+  description = "List of IPv6 CIDRs allowed to access SSH. Defaults to all addresses."
+  type        = list(string)
+  default     = ["::/0"]
+}
+
 variable "stackscript_id" {
   description = "Optional StackScript ID for instance configuration"
   type        = number

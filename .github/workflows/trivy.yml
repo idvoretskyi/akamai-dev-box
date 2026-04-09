@@ -9,6 +9,29 @@ on:
     - cron: "0 6 * * *"  # Every day at 06:00 UTC
 
 jobs:
+  tofu-validate:
+    name: Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v2
+
+      - name: Format check
+        run: tofu fmt -check -recursive -diff
+        working-directory: tofu
+
+      - name: Initialize
+        run: tofu init -backend=false
+        working-directory: tofu
+
+      - name: Validate
+        run: tofu validate
+        working-directory: tofu
+
   trivy:
     name: Scan
     runs-on: ubuntu-latest
@@ -18,7 +41,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run Trivy (misconfigurations & secrets)
         uses: aquasecurity/trivy-action@0.35.0
@@ -32,7 +55,7 @@ jobs:
           severity: CRITICAL,HIGH
 
       - name: Upload results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: trivy-results.sarif

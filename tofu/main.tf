@@ -4,9 +4,33 @@ data "external" "current_user" {
 
 locals {
   username = coalesce(var.username, data.external.current_user.result.username)
+
+  inbound_rules = [
+    {
+      label    = "allow-ssh"
+      protocol = "TCP"
+      ports    = "22"
+      ipv4     = var.allowed_ssh_cidrs_ipv4
+      ipv6     = var.allowed_ssh_cidrs_ipv6
+    },
+    {
+      label    = "allow-http"
+      protocol = "TCP"
+      ports    = "80"
+      ipv4     = ["0.0.0.0/0"]
+      ipv6     = ["::/0"]
+    },
+    {
+      label    = "allow-https"
+      protocol = "TCP"
+      ports    = "443"
+      ipv4     = ["0.0.0.0/0"]
+      ipv6     = ["::/0"]
+    },
+  ]
 }
 
-resource "linode_instance" "arch_dev" {
+resource "linode_instance" "dev_box" {
   label           = var.instance_label
   image           = var.image
   region          = var.region
@@ -36,7 +60,7 @@ resource "linode_instance" "arch_dev" {
   }
 }
 
-resource "linode_firewall" "arch_dev_fw" {
+resource "linode_firewall" "dev_box_fw" {
   count = var.create_firewall ? 1 : 0
 
   label = "${var.instance_label}-firewall"
@@ -45,58 +69,19 @@ resource "linode_firewall" "arch_dev_fw" {
   inbound_policy  = "DROP"
   outbound_policy = "ACCEPT"
 
-  inbound {
-    label    = "allow-ssh"
-    action   = "ACCEPT"
-    protocol = "TCP"
-    ports    = "22"
-    ipv4     = ["0.0.0.0/0"]
-    ipv6     = ["::/0"]
+  dynamic "inbound" {
+    for_each = local.inbound_rules
+    content {
+      label    = inbound.value.label
+      action   = "ACCEPT"
+      protocol = inbound.value.protocol
+      ports    = inbound.value.ports
+      ipv4     = inbound.value.ipv4
+      ipv6     = inbound.value.ipv6
+    }
   }
 
-  inbound {
-    label    = "allow-http"
-    action   = "ACCEPT"
-    protocol = "TCP"
-    ports    = "80"
-    ipv4     = ["0.0.0.0/0"]
-    ipv6     = ["::/0"]
-  }
+  # Outbound policy is ACCEPT, so no explicit outbound rules are needed.
 
-  inbound {
-    label    = "allow-https"
-    action   = "ACCEPT"
-    protocol = "TCP"
-    ports    = "443"
-    ipv4     = ["0.0.0.0/0"]
-    ipv6     = ["::/0"]
-  }
-
-  outbound {
-    label    = "allow-all-outbound"
-    action   = "ACCEPT"
-    protocol = "TCP"
-    ports    = "1-65535"
-    ipv4     = ["0.0.0.0/0"]
-    ipv6     = ["::/0"]
-  }
-
-  outbound {
-    label    = "allow-all-udp-outbound"
-    action   = "ACCEPT"
-    protocol = "UDP"
-    ports    = "1-65535"
-    ipv4     = ["0.0.0.0/0"]
-    ipv6     = ["::/0"]
-  }
-
-  outbound {
-    label    = "allow-icmp-outbound"
-    action   = "ACCEPT"
-    protocol = "ICMP"
-    ipv4     = ["0.0.0.0/0"]
-    ipv6     = ["::/0"]
-  }
-
-  linodes = [linode_instance.arch_dev.id]
+  linodes = [linode_instance.dev_box.id]
 }

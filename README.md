@@ -47,12 +47,15 @@ ssh root@$(tofu -chdir=tofu output -raw ipv4_address)
 | `instance_type` | Instance plan | `g6-standard-2` |
 | `instance_label` | Instance label | `dev-box` |
 | `image` | Image slug | `linode/ubuntu24.04` |
+| `username` | Non-root user to create via cloud-init | auto-detected |
 | `authorized_keys` | SSH public keys | `[]` |
-| `root_pass` | Root password (required by API) | — |
+| `root_pass` | Root password (required by API) | -- |
 | `tags` | Resource tags | `["dev", "ubuntu"]` |
 | `private_ip` | Enable private IP | `false` |
 | `backups_enabled` | Enable automated backups | `false` |
 | `create_firewall` | Create and attach a Cloud Firewall | `true` |
+| `allowed_ssh_cidrs_ipv4` | IPv4 CIDRs allowed for SSH access | `["0.0.0.0/0"]` |
+| `allowed_ssh_cidrs_ipv6` | IPv6 CIDRs allowed for SSH access | `["::/0"]` |
 | `stackscript_id` | Optional StackScript ID | `null` |
 | `stackscript_data` | Data passed to the StackScript | `{}` |
 
