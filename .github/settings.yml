@@ -1,6 +1,6 @@
 repository:
-  name: akamai-dev-box-arch
-  description: OpenTofu configuration for an Arch Linux development box on Akamai Cloud
+  name: akamai-dev-box
+  description: OpenTofu configuration for a development box on Akamai Cloud
   topics:
     - akamai
     - linode
