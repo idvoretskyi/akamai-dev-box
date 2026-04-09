@@ -1,0 +1,51 @@
+# Akamai (Linode) Configuration
+# Copy this file to terraform.tfvars and customize
+
+# Region where the instance will be deployed
+# Available regions: us-east, us-west, eu-west, eu-central, ap-south, ap-northeast, etc.
+region = "us-east"
+
+# Instance type
+# g6-standard-2: 2 vCPUs, 4GB RAM, 80GB Storage ($24/mo)   ← default
+# g6-standard-4: 4 vCPUs, 8GB RAM, 160GB Storage ($48/mo)
+# g6-standard-6: 4 vCPUs, 16GB RAM, 320GB Storage ($96/mo)
+# g6-standard-8: 6 vCPUs, 32GB RAM, 640GB Storage ($192/mo)
+# g6-dedicated-8: 8 vCPUs, 16GB RAM, 640GB Storage ($218/mo) - Dedicated CPU
+instance_type = "g6-standard-2"
+
+# Instance label
+instance_label = "dev-box"
+
+# Ubuntu 24.04 image
+image = "linode/ubuntu24.04"
+
+# Non-root user to create via cloud-init.
+# Optional — auto-detected from the local machine's current user if omitted.
+# username = "your-username"
+
+# SSH public keys for authentication (ed25519 recommended)
+authorized_keys = [
+  # "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... your-email@example.com",
+]
+
+# Root password (required by Linode API, but SSH keys are recommended for access)
+# Generate a strong password: openssl rand -base64 32
+root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD"
+
+# Tags for organization
+tags = ["dev", "ubuntu", "development"]
+
+# Private IP address (set to true if you need private networking)
+private_ip = false
+
+# Automated backups (additional cost)
+backups_enabled = false
+
+# Firewall (set to false to skip firewall creation)
+create_firewall = true
+
+# Optional: StackScript for automated configuration
+# stackscript_id = 123456
+# stackscript_data = {
+#   "variable_name" = "value"
+# }
