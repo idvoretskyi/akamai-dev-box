@@ -1,7 +1,7 @@
-# akamai-dev-box-arch
+# akamai-dev-box
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Trivy Security Scan](https://github.com/idvoretskyi/akamai-dev-box-arch/actions/workflows/trivy.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box-arch/actions/workflows/trivy.yml)
+[![Trivy Security Scan](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml)
 
 OpenTofu configuration for deploying an Ubuntu 24.04 development box on [Akamai Cloud](https://www.linode.com/) (formerly Linode).
 

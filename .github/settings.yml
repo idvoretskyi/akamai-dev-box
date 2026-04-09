@@ -6,7 +6,6 @@ repository:
     - linode
     - opentofu
     - terraform
-    - arch-linux
     - infrastructure-as-code
     - devbox
   private: false
