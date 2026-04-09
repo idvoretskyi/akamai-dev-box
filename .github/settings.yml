@@ -1,5 +1,5 @@
 repository:
-  name: akamai-dev-box-arch
+  name: akamai-dev-box
   description: OpenTofu configuration for a development box on Akamai Cloud
   topics:
     - akamai

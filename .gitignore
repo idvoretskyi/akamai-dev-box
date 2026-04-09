@@ -1,7 +1,6 @@
 # Terraform state
 *.tfstate
 *.tfstate.*
-*.tfstate.backup
 
 # Terraform directories
 .terraform/
@@ -24,8 +23,19 @@ override.tf.json
 # Generated plan files
 *.tfplan
 
+# Environment variables (may contain API tokens)
+.env
+.env.*
+
 # macOS
 .DS_Store
+
+# IDE / editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
 # Claude Code
 .claude/
