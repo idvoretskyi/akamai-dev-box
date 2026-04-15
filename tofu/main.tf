@@ -1,9 +1,5 @@
-data "external" "current_user" {
-  program = ["bash", "-c", "echo \"{\\\"username\\\": \\\"$(whoami)\\\"}\""]
-}
-
 locals {
-  username = coalesce(var.username, data.external.current_user.result.username)
+  username = coalesce(var.username, "devuser")
 
   inbound_rules = [
     {
