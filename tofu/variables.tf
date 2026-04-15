@@ -43,22 +43,37 @@ variable "image" {
 }
 
 variable "username" {
-  description = "Non-root user to create on the instance via cloud-init. Defaults to the local machine's current user."
+  description = "Non-root user to create on the instance via cloud-init. Defaults to 'devuser' if not set."
   type        = string
   default     = null
   nullable    = true
+
+  validation {
+    condition     = var.username == null || can(regex("^[a-z_][a-z0-9_-]{0,31}$", var.username))
+    error_message = "Username must be a valid Linux username: start with a lowercase letter or underscore, followed by up to 31 lowercase letters, digits, underscores, or hyphens."
+  }
 }
 
 variable "authorized_keys" {
   description = "List of SSH public keys for root user access"
   type        = list(string)
   default     = []
+
+  validation {
+    condition     = alltrue([for key in var.authorized_keys : can(regex("^(ssh-(rsa|ed25519|dss)|ecdsa-sha2-nistp(256|384|521)) ", key))])
+    error_message = "Each authorized key must be a valid SSH public key starting with a recognized key type (ssh-rsa, ssh-ed25519, ssh-dss, or ecdsa-sha2-nistp*)."
+  }
 }
 
 variable "root_pass" {
   description = "Root password for the instance (required by Linode, but SSH keys are recommended)"
   type        = string
   sensitive   = true
+
+  validation {
+    condition     = length(var.root_pass) >= 16
+    error_message = "Root password must be at least 16 characters long for security."
+  }
 }
 
 variable "tags" {
@@ -89,12 +104,22 @@ variable "allowed_ssh_cidrs_ipv4" {
   description = "List of IPv4 CIDRs allowed to access SSH. Defaults to all addresses."
   type        = list(string)
   default     = ["0.0.0.0/0"]
+
+  validation {
+    condition     = alltrue([for cidr in var.allowed_ssh_cidrs_ipv4 : can(cidrhost(cidr, 0))])
+    error_message = "Each entry in allowed_ssh_cidrs_ipv4 must be a valid IPv4 CIDR (e.g. 192.168.1.0/24)."
+  }
 }
 
 variable "allowed_ssh_cidrs_ipv6" {
   description = "List of IPv6 CIDRs allowed to access SSH. Defaults to all addresses."
   type        = list(string)
   default     = ["::/0"]
+
+  validation {
+    condition     = alltrue([for cidr in var.allowed_ssh_cidrs_ipv6 : can(cidrhost(cidr, 0))])
+    error_message = "Each entry in allowed_ssh_cidrs_ipv6 must be a valid IPv6 CIDR (e.g. 2001:db8::/32)."
+  }
 }
 
 variable "stackscript_id" {

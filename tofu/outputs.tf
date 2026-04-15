@@ -1,3 +1,7 @@
+# -----------------------------------------------------------------------------
+# Instance outputs
+# -----------------------------------------------------------------------------
+
 output "instance_id" {
   description = "The ID of the Linode instance"
   value       = linode_instance.dev_box.id
@@ -12,6 +16,20 @@ output "instance_status" {
   description = "The status of the Linode instance"
   value       = linode_instance.dev_box.status
 }
+
+output "instance_type" {
+  description = "The type/plan of the instance"
+  value       = linode_instance.dev_box.type
+}
+
+output "region" {
+  description = "The region where the instance is deployed"
+  value       = linode_instance.dev_box.region
+}
+
+# -----------------------------------------------------------------------------
+# Network outputs
+# -----------------------------------------------------------------------------
 
 output "ipv4_address" {
   description = "The public IPv4 address of the instance"
@@ -28,20 +46,23 @@ output "private_ip_address" {
   value       = linode_instance.dev_box.private_ip_address
 }
 
-output "region" {
-  description = "The region where the instance is deployed"
-  value       = linode_instance.dev_box.region
-}
-
-output "instance_type" {
-  description = "The type/plan of the instance"
-  value       = linode_instance.dev_box.type
-}
+# -----------------------------------------------------------------------------
+# SSH outputs
+# -----------------------------------------------------------------------------
 
 output "ssh_command" {
-  description = "SSH command to connect to the instance"
+  description = "SSH command to connect to the instance as root"
   value       = length(linode_instance.dev_box.ipv4) > 0 ? "ssh root@${tolist(linode_instance.dev_box.ipv4)[0]}" : "Instance IP not available"
 }
+
+output "ssh_command_user" {
+  description = "SSH command to connect to the instance as the non-root user"
+  value       = length(linode_instance.dev_box.ipv4) > 0 ? "ssh ${local.username}@${tolist(linode_instance.dev_box.ipv4)[0]}" : "Instance IP not available"
+}
+
+# -----------------------------------------------------------------------------
+# Firewall outputs
+# -----------------------------------------------------------------------------
 
 output "firewall_id" {
   description = "The ID of the firewall (null if create_firewall is false)"
