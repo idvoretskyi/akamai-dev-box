@@ -4,6 +4,7 @@
 
 # Terraform directories
 .terraform/
+!tofu/.terraform.lock.hcl
 
 # Locally fetched kubeconfig (rewritten from k3s node)
 kubeconfig.devbox*
@@ -39,5 +40,3 @@ override.tf.json
 *.swo
 *~
 
-# Claude Code
-.claude/
