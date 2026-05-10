@@ -1,0 +1,45 @@
+name: Validate
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  tofu:
+    name: OpenTofu fmt + validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: opentofu/setup-opentofu@v2
+
+      - name: tofu fmt
+        run: tofu fmt -check -recursive -diff
+        working-directory: tofu
+
+      - name: tofu init (no backend)
+        run: tofu init -backend=false
+        working-directory: tofu
+
+      - name: tofu validate
+        run: tofu validate
+        working-directory: tofu
+
+  shell:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ludeeus/action-shellcheck@master
+        with:
+          severity: warning
+          scandir: ./tofu
+
+  actions:
+    name: actionlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: raven-actions/actionlint@v2
