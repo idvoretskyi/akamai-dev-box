@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.6"
 
   required_providers {
     linode = {
@@ -8,7 +8,7 @@ terraform {
     }
     external = {
       source  = "hashicorp/external"
-      version = "~> 2.0"
+      version = "~> 2.3"
     }
   }
 }

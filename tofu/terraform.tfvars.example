@@ -1,55 +1,69 @@
-# Akamai (Linode) Configuration
-# Copy this file to terraform.tfvars and customize
+# akamai-dev-box — example variables
+# Copy to terraform.tfvars and customise. Variables left commented inherit
+# values from your local ~/.config/linode-cli (region, instance_type, image).
 
-# Region where the instance will be deployed
-# Available regions: us-east, us-west, eu-west, eu-central, ap-south, ap-northeast, etc.
-region = "us-east"
+###############################################################################
+# Required
+###############################################################################
 
-# Instance type
-# g6-standard-2: 2 vCPUs, 4GB RAM, 80GB Storage ($24/mo)   ← default
-# g6-standard-4: 4 vCPUs, 8GB RAM, 160GB Storage ($48/mo)
-# g6-standard-6: 4 vCPUs, 16GB RAM, 320GB Storage ($96/mo)
-# g6-standard-8: 6 vCPUs, 32GB RAM, 640GB Storage ($192/mo)
-# g6-dedicated-8: 8 vCPUs, 16GB RAM, 640GB Storage ($218/mo) - Dedicated CPU
-instance_type = "g6-standard-2"
-
-# Instance label
-instance_label = "dev-box"
-
-# Ubuntu 24.04 image
-image = "linode/ubuntu24.04"
-
-# Non-root user to create via cloud-init.
-# Optional — auto-detected from the local machine's current user if omitted.
-# username = "your-username"
-
-# SSH public keys for authentication (ed25519 recommended)
+# SSH public keys for the non-root user (ed25519 recommended).
 authorized_keys = [
-  # "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... your-email@example.com",
+  # "ssh-ed25519 AAAAC3Nz... you@example.com",
 ]
 
-# Root password (required by Linode API, but SSH keys are recommended for access)
-# Generate a strong password: openssl rand -base64 32
-root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD"
+# Required by the Linode API. Not used for login (SSH key auth only).
+# Generate with: openssl rand -base64 32
+root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD_AT_LEAST_16_CHARS"
 
-# Tags for organization
-tags = ["dev", "ubuntu", "development"]
+###############################################################################
+# Optional — inherited from ~/.config/linode-cli when left unset
+###############################################################################
 
-# Private IP address (set to true if you need private networking)
-private_ip = false
+# region        = "us-east"
+# instance_type = "g6-standard-4"   # 4 vCPU / 8 GB / 160 GB
+# image         = "linode/ubuntu25.10"   # newest available; update to linode/ubuntu26.04 once released on Akamai
 
-# Automated backups (additional cost)
-backups_enabled = false
+###############################################################################
+# Instance basics
+###############################################################################
 
-# Firewall (set to false to skip firewall creation)
-create_firewall = true
+# instance_label = "dev-box"
+# hostname       = ""        # defaults to instance_label
+# timezone       = "UTC"
+# username       = "devuser"
+# tags           = ["dev", "devbox", "k3s", "ubuntu"]
+# private_ip     = false
+# backups_enabled = false
 
-# Restrict SSH access to specific CIDRs (default: open to all)
-# allowed_ssh_cidrs_ipv4 = ["203.0.113.0/24"]
-# allowed_ssh_cidrs_ipv6 = ["2001:db8::/32"]
+###############################################################################
+# Firewall
+###############################################################################
 
-# Optional: StackScript for automated configuration
-# stackscript_id = 123456
-# stackscript_data = {
-#   "variable_name" = "value"
-# }
+# create_firewall = true
+
+# Restrict SSH to your own networks for production use.
+# allowed_ssh_cidrs_ipv4 = ["203.0.113.10/32"]
+# allowed_ssh_cidrs_ipv6 = ["2001:db8::1/128"]
+
+# Open inbound 80/443 (off by default — VSCode tunnel covers most workflows).
+# expose_web = false
+
+# Open inbound 6443 for the k3s API (off by default — use kubeconfig_fetch_command).
+# expose_k3s_api = false
+# allowed_k3s_api_cidrs_ipv4 = ["203.0.113.10/32"]
+# allowed_k3s_api_cidrs_ipv6 = []
+
+###############################################################################
+# Cloud-init toggles
+###############################################################################
+
+# extra_packages       = []
+# install_docker       = true
+# install_k3s          = true
+# k3s_channel          = "stable"
+# k3s_disable_components = ["traefik", "servicelb"]
+# install_languages    = ["go", "node", "python", "rust"]
+# install_claude_code  = true
+# install_opencode     = true
+# install_vscode_tunnel = true
+# vscode_tunnel_name   = ""   # defaults to hostname

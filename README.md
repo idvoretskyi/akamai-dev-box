@@ -1,66 +1,213 @@
 # akamai-dev-box
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Validate](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml)
 [![Trivy Security Scan](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml)
 
-OpenTofu configuration for deploying an Ubuntu 24.04 development box on [Akamai Cloud](https://www.linode.com/) (formerly Linode).
+Pure OpenTofu configuration that spins up a remote Ubuntu 26.04 dev box on
+[Akamai Cloud](https://www.linode.com/) (formerly Linode), preloaded with k3s,
+container tooling, CNCF CLIs, common language toolchains, and AI coding agents
+(Claude Code + OpenCode). Intended to be used as a remote brain for
+agentic-coding sessions and CNCF demo work, reached over SSH and/or
+[vscode.dev tunnel](https://code.visualstudio.com/docs/remote/tunnels).
 
-## What it provisions
+## What's installed
 
-- A Linode instance running Ubuntu 24.04
-- A Cloud Firewall with SSH (22), HTTP (80), and HTTPS (443) inbound rules (optional)
+| Layer              | Tools                                                          |
+| ------------------ | -------------------------------------------------------------- |
+| OS                 | Ubuntu 25.10 (26.04 not yet available on Akamai; update `image` once it appears) |
+| Container runtimes | Docker CE (+ buildx, compose), containerd (via k3s)            |
+| Kubernetes         | k3s single-node (Traefik + ServiceLB disabled by default)      |
+| Kube CLIs          | kubectl, helm, k9s, stern, cilium-cli, flux, argocd, yq        |
+| Languages          | Go, Node LTS (via fnm), Python (via uv), Rust (rustup)         |
+| AI agents          | Claude Code (`@anthropic-ai/claude-code`), OpenCode            |
+| Editor             | VSCode `code` CLI + tunnel (`https://vscode.dev/tunnel/<name>`) |
+| Base utilities     | git, tmux, jq, ripgrep, fd, bat, neovim, htop                  |
+
+All toggles are exposed as variables — disable any layer you don't want.
+
+## Architecture
+
+```
+  laptop ── SSH ─────────────┐
+                             ├── Akamai VM ── k3s (single node)
+  laptop ── VSCode tunnel ───┘                ── Docker
+                       (outbound HTTPS only,
+                        no inbound web ports required)
+```
 
 ## Prerequisites
 
-- [OpenTofu](https://opentofu.org/) >= 1.0
-- An [Akamai API token](https://cloud.linode.com/profile/tokens) with read/write access to Linodes and Firewalls
-- Your SSH public key
+- [OpenTofu](https://opentofu.org/) >= 1.6
+- An [Akamai API token](https://cloud.linode.com/profile/tokens) with read/write
+  on Linodes and Firewalls (set `LINODE_TOKEN`)
+- An Ed25519 SSH public key
+- (Optional) `linode-cli` configured locally — its region/type/image are
+  inherited automatically
+- A GitHub account for the one-time VSCode tunnel device-code login
 
-## Usage
+## Configuration sourcing
+
+`region`, `instance_type`, and `image` are sourced from `~/.config/linode-cli`
+by default (the `default-user`'s section). Set them explicitly in
+`terraform.tfvars` (or via `-var`) to override. If the file is absent,
+built-in fallbacks apply (`us-east`, `g6-standard-4`, `linode/ubuntu26.04`).
+
+Precedence: `terraform.tfvars` / `-var` → `~/.config/linode-cli` → fallback.
+
+## Quick start
 
 ```sh
-# 1. Set your API token
+# 1. Configure
 export LINODE_TOKEN="your-token-here"
-
-# 2. Configure variables
 cp tofu/terraform.tfvars.example tofu/terraform.tfvars
-# Edit tofu/terraform.tfvars with your values
+$EDITOR tofu/terraform.tfvars   # at minimum: authorized_keys + root_pass
 
-# 3. Deploy
-cd tofu
-tofu init
-tofu plan
-tofu apply
+# 2. Deploy
+tofu -chdir=tofu init
+tofu -chdir=tofu apply
+
+# 3. Wait for cloud-init to finish (5–10 min)
+eval "$(tofu -chdir=tofu output -raw wait_ready_command)"
+
+# 4. One-time VSCode tunnel setup (interactive GitHub device-code login)
+eval "$(tofu -chdir=tofu output -raw vscode_tunnel_setup_command)"
+
+# 5. Open the tunnel
+tofu -chdir=tofu output -raw vscode_tunnel_url
 ```
 
-## Connect
+## Common operations
+
+All helpers live as outputs whose value is a ready-to-run shell command.
+
+| What                          | Command                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------ |
+| Show all outputs              | `tofu -chdir=tofu output`                                                |
+| SSH as the non-root user      | `eval "$(tofu -chdir=tofu output -raw ssh_command_user)"`                |
+| Tail cloud-init log           | `eval "$(tofu -chdir=tofu output -raw first_boot_log_command)"`          |
+| Wait for cloud-init ready     | `eval "$(tofu -chdir=tofu output -raw wait_ready_command)"`              |
+| Fetch kubeconfig locally      | `eval "$(tofu -chdir=tofu output -raw kubeconfig_fetch_command)"`        |
+| k3s nodes + pods over SSH     | `eval "$(tofu -chdir=tofu output -raw k3s_status_command)"`              |
+| VSCode tunnel setup (one-off) | `eval "$(tofu -chdir=tofu output -raw vscode_tunnel_setup_command)"`     |
+| Open the tunnel URL           | `open "$(tofu -chdir=tofu output -raw vscode_tunnel_url)"`               |
+| Plan changes                  | `tofu -chdir=tofu plan`                                                  |
+| Format + validate             | `tofu -chdir=tofu fmt -recursive && tofu -chdir=tofu validate`           |
+| Tear it all down              | `tofu -chdir=tofu destroy`                                               |
+
+After running the kubeconfig fetch, use the cluster locally with:
 
 ```sh
-ssh root@$(tofu -chdir=tofu output -raw ipv4_address)
+export KUBECONFIG="$PWD/kubeconfig.devbox"
+kubectl get nodes
 ```
 
 ## Variables
 
-| Name | Description | Default |
-| ---- | ----------- | ------- |
-| `region` | Akamai region slug | `us-east` |
-| `instance_type` | Instance plan | `g6-standard-2` |
-| `instance_label` | Instance label | `dev-box` |
-| `image` | Image slug | `linode/ubuntu24.04` |
-| `username` | Non-root user to create via cloud-init | auto-detected |
-| `authorized_keys` | SSH public keys | `[]` |
-| `root_pass` | Root password (required by API) | -- |
-| `tags` | Resource tags | `["dev", "ubuntu"]` |
-| `private_ip` | Enable private IP | `false` |
-| `backups_enabled` | Enable automated backups | `false` |
-| `create_firewall` | Create and attach a Cloud Firewall | `true` |
-| `allowed_ssh_cidrs_ipv4` | IPv4 CIDRs allowed for SSH access | `["0.0.0.0/0"]` |
-| `allowed_ssh_cidrs_ipv6` | IPv6 CIDRs allowed for SSH access | `["::/0"]` |
-| `stackscript_id` | Optional StackScript ID | `null` |
-| `stackscript_data` | Data passed to the StackScript | `{}` |
+Only the most relevant are listed; see `tofu/variables.tf` for the full list
+with descriptions and validation rules.
 
-## Destroy
+| Name                       | Default                              | Notes                                                  |
+| -------------------------- | ------------------------------------ | ------------------------------------------------------ |
+| `region`                   | from `linode-cli`, else `us-east`    |                                                        |
+| `instance_type`            | from `linode-cli`, else `g6-standard-4` | 4 vCPU / 8 GB recommended minimum for k3s + agents |
+| `image`                    | from `linode-cli`, else `linode/ubuntu25.10` | Ubuntu 26.04 not yet in Akamai catalog     |
+| `instance_label`           | `dev-box`                            |                                                        |
+| `hostname`                 | (instance label)                     |                                                        |
+| `timezone`                 | `UTC`                                |                                                        |
+| `username`                 | `devuser`                            | Non-root user created by cloud-init                    |
+| `authorized_keys`          | `[]`                                 | Required for SSH access                                |
+| `root_pass`                | (required)                           | API requires it; SSH key auth is used in practice      |
+| `create_firewall`          | `true`                               |                                                        |
+| `allowed_ssh_cidrs_ipv4/6` | open                                 | Restrict to your own IPs in production                 |
+| `expose_web`               | `false`                              | Open inbound 80/443                                    |
+| `expose_k3s_api`           | `false`                              | Open inbound 6443; requires CIDR allow-lists           |
+| `install_docker`           | `true`                               |                                                        |
+| `install_k3s`              | `true`                               |                                                        |
+| `k3s_disable_components`   | `["traefik","servicelb"]`            |                                                        |
+| `install_languages`        | `["go","node","python","rust"]`      |                                                        |
+| `install_claude_code`      | `true`                               |                                                        |
+| `install_opencode`         | `true`                               |                                                        |
+| `install_vscode_tunnel`    | `true`                               | Manual `code tunnel` login on first boot               |
+| `vscode_tunnel_name`       | (hostname)                           |                                                        |
+
+## Security notes
+
+- **No inbound web ports by default.** SSH (22) is the only port open out of
+  the box. VSCode access uses Microsoft's outbound tunnel, so neither 80/443
+  nor 6443 need to be exposed for the editor or for kubectl (use the
+  `kubeconfig_fetch_command` output instead).
+- **Restrict SSH** to your own networks via `allowed_ssh_cidrs_ipv4/6`.
+- **Root login disabled** after cloud-init runs.
+- **API token** lives only in `LINODE_TOKEN`. Scope it to Linodes RW +
+  Firewalls RW.
+- **State files** (`terraform.tfstate*`) are gitignored. Don't commit them.
+- **Root password** is required by the Linode API but unused for login.
+  Generate one with `openssl rand -base64 32`.
+
+## Cost (rough, USD/month, varies by region)
+
+| Plan            | vCPU / RAM / Disk | ~/mo  |
+| --------------- | ----------------- | ----- |
+| g6-standard-2   | 2 / 4 GB / 80 GB  | $24   |
+| g6-standard-4   | 4 / 8 GB / 160 GB | $48 (default) |
+| g6-standard-6   | 4 / 16 GB / 320 GB | $96  |
+| g6-dedicated-8  | 8 / 16 GB / 640 GB | $218 |
+
+Add ~$2/mo per plan if `backups_enabled = true`. Egress overages apply for
+heavy demo traffic.
+
+## Project layout
+
+```
+.
+├── .github/
+│   ├── dependabot.yml
+│   ├── settings.yml
+│   └── workflows/
+│       ├── validate.yml          # tofu fmt + validate, shellcheck, actionlint
+│       └── trivy.yml             # IaC + secrets scan
+├── LICENSE
+├── README.md
+└── tofu/
+    ├── cloud-init/
+    │   ├── main.yaml.tpl         # cloud-config template
+    │   └── scripts/
+    │       ├── 10-base.sh
+    │       ├── 20-docker.sh
+    │       ├── 30-k3s.sh
+    │       ├── 40-kube-tools.sh
+    │       ├── 50-langs.sh
+    │       ├── 60-agents.sh
+    │       └── 70-vscode-tunnel.sh
+    ├── scripts/
+    │   └── read-linode-cli.sh    # local linode-cli config reader
+    ├── main.tf
+    ├── outputs.tf
+    ├── provider.tf
+    ├── terraform.tfvars.example
+    ├── variables.tf
+    └── versions.tf
+```
+
+## Tear down
 
 ```sh
 tofu -chdir=tofu destroy
 ```
+
+Verify in the Linode console that no orphaned resources remain.
+
+## Contributing
+
+PRs welcome. Before opening one:
+
+```sh
+tofu -chdir=tofu fmt -recursive
+tofu -chdir=tofu init -backend=false
+tofu -chdir=tofu validate
+```
+
+## License
+
+[MIT](LICENSE).
