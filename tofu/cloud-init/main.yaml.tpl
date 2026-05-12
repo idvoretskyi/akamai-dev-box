@@ -47,6 +47,7 @@ write_files:
       INSTALL_OPENCODE=${install_opencode}
       INSTALL_VSCODE_TUNNEL=${install_vscode}
       VSCODE_TUNNEL_NAME=${vscode_tunnel_name}
+      INSTALL_SHELL_STACK=${install_shell}
       EXTRA_PACKAGES="${join(" ", extra_packages)}"
 %{ for name in scripts ~}
   - path: /opt/devbox/scripts/${name}

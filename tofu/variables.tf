@@ -39,7 +39,7 @@ variable "instance_label" {
 }
 
 variable "image" {
-  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/ubuntu24.04 (Ubuntu 24.04 LTS)."
+  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/debian13 (Debian 13 Trixie). Supported: linode/debian13, linode/debian12, linode/ubuntu24.04, linode/ubuntu22.04."
   type        = string
   default     = null
   nullable    = true
@@ -75,7 +75,7 @@ variable "timezone" {
 variable "tags" {
   description = "Tags to apply to the instance and firewall."
   type        = list(string)
-  default     = ["dev", "devbox", "k3s", "ubuntu"]
+  default     = ["dev", "devbox", "k3s", "debian"]
 }
 
 variable "private_ip" {
@@ -266,4 +266,10 @@ variable "vscode_tunnel_name" {
     condition     = var.vscode_tunnel_name == "" || can(regex("^[a-z0-9][a-z0-9-]{0,38}$", var.vscode_tunnel_name))
     error_message = "Tunnel name must be 1-39 chars of lowercase letters, digits, or hyphens, starting with a letter or digit."
   }
+}
+
+variable "install_shell_stack" {
+  description = "Install zsh + oh-my-zsh + powerlevel10k + tmux (TPM) + modern CLI essentials (fzf, zoxide, eza, delta, gh, btop, ncdu) for the non-root user. Sets zsh as the default login shell."
+  type        = bool
+  default     = true
 }
