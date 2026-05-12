@@ -10,7 +10,6 @@ apt-get update -y
 apt-get install -y --no-install-recommends \
   build-essential \
   apt-transport-https \
-  software-properties-common \
   wget \
   ripgrep \
   fd-find \
