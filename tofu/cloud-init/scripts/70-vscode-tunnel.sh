@@ -34,6 +34,9 @@ cat >/etc/motd <<EOF
   Ready marker:    /var/lib/devbox-init.done
   Kubeconfig:      ~/.kube/config (k3s)
 
+  Start a tmux session:
+    tmux new -s dev
+
   First-time VSCode tunnel setup (run once as your user):
     code tunnel user login --provider github
     sudo loginctl enable-linger \$USER
