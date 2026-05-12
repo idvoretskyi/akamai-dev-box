@@ -25,7 +25,7 @@ locals {
   tunnel_name = var.vscode_tunnel_name == "" ? local.hostname : var.vscode_tunnel_name
   # Git ref used to fetch scripts from GitHub at boot time.
   # Uses the current HEAD commit SHA for a stable, pinned reference.
-  git_ref = "c6a15d636852f71e09f9636546b67c5f48fa041e"
+  git_ref = "6830d739da37e645f6b2ade38bb663c390665c25"
 
   cloud_init = templatefile("${path.module}/cloud-init/main.yaml.tpl", {
     username           = local.username
