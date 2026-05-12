@@ -19,25 +19,13 @@ locals {
   instance_type = coalesce(var.instance_type, try(local.cli.type, ""), "g6-standard-4")
   image         = coalesce(var.image, try(local.cli.image, ""), "linode/debian13")
 
-  username     = coalesce(var.username, data.external.laptop_user.result.username)
-  instance     = coalesce(var.instance_label, "${local.username}-dev-box")
-  hostname     = var.hostname == "" ? local.instance : var.hostname
-  tunnel_name  = var.vscode_tunnel_name == "" ? local.hostname : var.vscode_tunnel_name
-  scripts_path = "${path.module}/cloud-init/scripts"
-
-  # Order matters: each script is idempotent and gated by its toggle in env.
-  scripts = [
-    "10-base.sh",
-    "20-docker.sh",
-    "30-k3s.sh",
-    "40-kube-tools.sh",
-    "50-langs.sh",
-    "60-agents.sh",
-    "70-vscode-tunnel.sh",
-    "80-shell.sh",
-  ]
-
-  script_files = { for s in local.scripts : s => file("${local.scripts_path}/${s}") }
+  username    = coalesce(var.username, data.external.laptop_user.result.username)
+  instance    = coalesce(var.instance_label, "${local.username}-dev-box")
+  hostname    = var.hostname == "" ? local.instance : var.hostname
+  tunnel_name = var.vscode_tunnel_name == "" ? local.hostname : var.vscode_tunnel_name
+  # Git ref used to fetch scripts from GitHub at boot time.
+  # Uses the current HEAD commit SHA for a stable, pinned reference.
+  git_ref = "refactor/k3s-devbox-rewrite"
 
   cloud_init = templatefile("${path.module}/cloud-init/main.yaml.tpl", {
     username           = local.username
@@ -55,8 +43,7 @@ locals {
     install_vscode     = var.install_vscode_tunnel
     vscode_tunnel_name = local.tunnel_name
     install_shell      = var.install_shell_stack
-    scripts            = local.scripts
-    script_files       = local.script_files
+    git_ref            = local.git_ref
   })
 
   # Firewall: SSH always; HTTP/HTTPS only if expose_web; 6443 only if expose_k3s_api.
