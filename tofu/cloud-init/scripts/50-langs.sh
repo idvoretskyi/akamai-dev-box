@@ -41,6 +41,7 @@ EOF
 
   sudo -iu "${DEVBOX_USER}" bash -l <<'HEREDOC'
 set -e
+export FNM_DIR="$HOME/.fnm"
 eval "$(fnm env --shell bash)"
 fnm install --lts
 fnm default lts-latest
