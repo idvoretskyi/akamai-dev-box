@@ -33,7 +33,4 @@ cp /etc/rancher/k3s/k3s.yaml "${user_home}/.kube/config"
 chown -R "${DEVBOX_USER}:${DEVBOX_USER}" "${user_home}/.kube"
 chmod 600 "${user_home}/.kube/config"
 
-# Convenience symlink.
-ln -sf /usr/local/bin/kubectl /usr/local/bin/k || true
-
 echo "[30-k3s] done"

@@ -59,6 +59,6 @@ runcmd:
   - sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
   - systemctl restart ssh || systemctl restart sshd || true
   - mkdir -p /var/log /var/lib
-  - bash -c 'set -o pipefail; { %{ for name in scripts ~}/opt/devbox/scripts/${name} && %{ endfor ~}touch /var/lib/devbox-init.done; } 2>&1 | tee -a /var/log/devbox-init.log'
+  - bash -c 'set -o pipefail; { %{ for name in scripts ~}/opt/devbox/scripts/${name} && %{ endfor ~}touch /var/lib/devbox-init.done; } 2>&1 | tee -a /var/log/devbox-init.log || touch /var/lib/devbox-init.failed'
 
 final_message: "devbox cloud-init finished after $UPTIME seconds. See /var/log/devbox-init.log."

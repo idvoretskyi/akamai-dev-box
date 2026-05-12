@@ -1,21 +1,27 @@
 ###############################################################################
 # Source defaults from the local linode-cli config when variables are unset.
 # Precedence: terraform.tfvars / -var  ->  ~/.config/linode-cli  ->  fallback.
+# The deploy username is derived from the local $USER at plan/apply time.
 ###############################################################################
 
 data "external" "linode_cli" {
   program = ["bash", "${path.module}/scripts/read-linode-cli.sh"]
 }
 
+data "external" "laptop_user" {
+  program = ["bash", "${path.module}/scripts/read-laptop-user.sh"]
+}
+
 locals {
   cli = data.external.linode_cli.result
 
-  region        = coalesce(var.region, try(local.cli.region, ""), "us-east")
+  region        = coalesce(var.region, try(local.cli.region, ""), "eu-west")
   instance_type = coalesce(var.instance_type, try(local.cli.type, ""), "g6-standard-4")
-  image         = coalesce(var.image, try(local.cli.image, ""), "linode/ubuntu25.10")
+  image         = coalesce(var.image, try(local.cli.image, ""), "linode/ubuntu24.04")
 
-  username     = coalesce(var.username, "devuser")
-  hostname     = var.hostname == "" ? var.instance_label : var.hostname
+  username     = coalesce(var.username, data.external.laptop_user.result.username)
+  instance     = coalesce(var.instance_label, "${local.username}-dev-box")
+  hostname     = var.hostname == "" ? local.instance : var.hostname
   tunnel_name  = var.vscode_tunnel_name == "" ? local.hostname : var.vscode_tunnel_name
   scripts_path = "${path.module}/cloud-init/scripts"
 
@@ -87,7 +93,7 @@ locals {
 }
 
 resource "linode_instance" "dev_box" {
-  label           = var.instance_label
+  label           = local.instance
   image           = local.image
   region          = local.region
   type            = local.instance_type
@@ -102,16 +108,18 @@ resource "linode_instance" "dev_box" {
   }
 
   lifecycle {
-    ignore_changes = [
-      root_pass,
-    ]
+    precondition {
+      condition     = can(regex("^[a-z_][a-z0-9_-]{0,31}$", local.username))
+      error_message = "Resolved deploy username '${local.username}' is not a valid Linux username. Set TF_VAR_username or ensure your local $USER is a valid Linux username (lowercase, max 32 chars)."
+    }
+    ignore_changes = [root_pass]
   }
 }
 
 resource "linode_firewall" "dev_box_fw" {
   count = var.create_firewall ? 1 : 0
 
-  label = "${var.instance_label}-firewall"
+  label = "${local.instance}-firewall"
   tags  = var.tags
 
   inbound_policy  = "DROP"

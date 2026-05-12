@@ -70,51 +70,65 @@ output "firewall_status" {
 ###############################################################################
 
 locals {
-  _ip   = length(linode_instance.dev_box.ipv4) > 0 ? tolist(linode_instance.dev_box.ipv4)[0] : ""
-  _user = local.username
-  _have = local._ip != ""
+  ip      = length(linode_instance.dev_box.ipv4) > 0 ? tolist(linode_instance.dev_box.ipv4)[0] : ""
+  have_ip = local.ip != ""
 }
 
 output "ssh_command" {
   description = "SSH as root."
-  value       = local._have ? "ssh root@${local._ip}" : null
+  value       = local.have_ip ? "ssh root@${local.ip}" : null
 }
 
 output "ssh_command_user" {
   description = "SSH as the non-root user."
-  value       = local._have ? "ssh ${local._user}@${local._ip}" : null
+  value       = local.have_ip ? "ssh ${local.username}@${local.ip}" : null
 }
 
 output "first_boot_log_command" {
   description = "Tail cloud-init log on the box."
-  value       = local._have ? "ssh ${local._user}@${local._ip} 'sudo tail -f /var/log/devbox-init.log'" : null
+  value       = local.have_ip ? "ssh ${local.username}@${local.ip} 'sudo tail -f /var/log/devbox-init.log'" : null
 }
 
 output "wait_ready_command" {
-  description = "Poll until cloud-init finishes (writes /var/lib/devbox-init.done)."
-  value       = local._have ? "until ssh -o StrictHostKeyChecking=accept-new ${local._user}@${local._ip} 'test -f /var/lib/devbox-init.done' 2>/dev/null; do echo waiting...; sleep 15; done; echo ready" : null
+  description = "Poll until cloud-init finishes (or fails). Exits 0 on success, 1 on failure."
+  value       = local.have_ip ? "until ssh -o StrictHostKeyChecking=accept-new ${local.username}@${local.ip} 'test -f /var/lib/devbox-init.done || test -f /var/lib/devbox-init.failed' 2>/dev/null; do echo waiting...; sleep 15; done; ssh ${local.username}@${local.ip} 'test -f /var/lib/devbox-init.done && echo ready || { echo FAILED - check /var/log/devbox-init.log; exit 1; }'" : null
 }
 
 output "kubeconfig_fetch_command" {
   description = "Fetch kubeconfig locally and rewrite the server URL to the public IP."
-  value       = local._have ? "scp ${local._user}@${local._ip}:~/.kube/config ./kubeconfig.devbox && sed -i.bak 's#https://127.0.0.1:6443#https://${local._ip}:6443#' ./kubeconfig.devbox && rm ./kubeconfig.devbox.bak" : null
+  value       = local.have_ip ? "scp ${local.username}@${local.ip}:~/.kube/config ./kubeconfig.devbox && sed -i.bak 's#https://127.0.0.1:6443#https://${local.ip}:6443#' ./kubeconfig.devbox && rm ./kubeconfig.devbox.bak" : null
 }
 
 output "k3s_status_command" {
   description = "Show k3s nodes and pods over SSH."
-  value       = local._have ? "ssh ${local._user}@${local._ip} 'sudo k3s kubectl get nodes,pods -A'" : null
+  value       = local.have_ip ? "ssh ${local.username}@${local.ip} 'sudo k3s kubectl get nodes,pods -A'" : null
 }
 
 output "vscode_tunnel_url" {
-  description = "VSCode tunnel URL once `code tunnel service install` has been run on the box."
+  description = "VSCode tunnel URL once the tunnel service has been installed on the box."
   value       = var.install_vscode_tunnel ? "https://vscode.dev/tunnel/${local.tunnel_name}" : null
 }
 
 output "vscode_tunnel_setup_command" {
   description = "One-time interactive command to log in to GitHub and register the VSCode tunnel service."
-  value = var.install_vscode_tunnel && local._have ? join(" && ", [
-    "ssh -t ${local._user}@${local._ip} 'code tunnel user login --provider github",
-    "sudo loginctl enable-linger ${local._user}",
-    "code tunnel service install --name ${local.tunnel_name}'"
-  ]) : null
+  value       = var.install_vscode_tunnel && local.have_ip ? "ssh -t ${local.username}@${local.ip} 'code tunnel user login --provider github && sudo loginctl enable-linger ${local.username} && code tunnel service install --name ${local.tunnel_name}'" : null
+}
+
+###############################################################################
+# SSH config helpers
+###############################################################################
+
+output "ssh_config_snippet" {
+  description = "~/.ssh/config block for this box. Append via ssh_config_install_command."
+  value       = local.have_ip ? "# BEGIN akamai-dev-box\nHost $USER-dev-box\n  HostName ${local.ip}\n  User ${local.username}\n  IdentityFile ~/.ssh/id_ed25519\n  StrictHostKeyChecking accept-new\n# END akamai-dev-box" : null
+}
+
+output "ssh_config_install_command" {
+  description = "Idempotently install the SSH config block into ~/.ssh/config (removes any previous block first)."
+  value       = local.have_ip ? "sed -i.bak '/^# BEGIN akamai-dev-box$/,/^# END akamai-dev-box$/d' ~/.ssh/config 2>/dev/null; rm -f ~/.ssh/config.bak; printf '# BEGIN akamai-dev-box\\nHost %s-dev-box\\n  HostName ${local.ip}\\n  User ${local.username}\\n  IdentityFile ~/.ssh/id_ed25519\\n  StrictHostKeyChecking accept-new\\n# END akamai-dev-box\\n' \"$USER\" >> ~/.ssh/config; chmod 600 ~/.ssh/config" : null
+}
+
+output "ssh_config_remove_command" {
+  description = "Remove the managed SSH config block on destroy."
+  value       = "sed -i.bak '/^# BEGIN akamai-dev-box$/,/^# END akamai-dev-box$/d' ~/.ssh/config 2>/dev/null && rm -f ~/.ssh/config.bak && chmod 600 ~/.ssh/config"
 }

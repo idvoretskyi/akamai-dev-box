@@ -4,7 +4,7 @@
 [![Validate](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml)
 [![Trivy Security Scan](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml)
 
-Pure OpenTofu configuration that spins up a remote Ubuntu 26.04 dev box on
+Pure OpenTofu configuration that spins up a remote Ubuntu 24.04 LTS dev box on
 [Akamai Cloud](https://www.linode.com/) (formerly Linode), preloaded with k3s,
 container tooling, CNCF CLIs, common language toolchains, and AI coding agents
 (Claude Code + OpenCode). Intended to be used as a remote brain for
@@ -15,7 +15,7 @@ agentic-coding sessions and CNCF demo work, reached over SSH and/or
 
 | Layer              | Tools                                                          |
 | ------------------ | -------------------------------------------------------------- |
-| OS                 | Ubuntu 25.10 (26.04 not yet available on Akamai; update `image` once it appears) |
+| OS                 | Ubuntu 24.04 LTS (Noble Numbat)                                |
 | Container runtimes | Docker CE (+ buildx, compose), containerd (via k3s)            |
 | Kubernetes         | k3s single-node (Traefik + ServiceLB disabled by default)      |
 | Kube CLIs          | kubectl, helm, k9s, stern, cilium-cli, flux, argocd, yq        |
@@ -48,12 +48,17 @@ All toggles are exposed as variables — disable any layer you don't want.
 
 ## Configuration sourcing
 
-`region`, `instance_type`, and `image` are sourced from `~/.config/linode-cli`
-by default (the `default-user`'s section). Set them explicitly in
-`terraform.tfvars` (or via `-var`) to override. If the file is absent,
-built-in fallbacks apply (`us-east`, `g6-standard-4`, `linode/ubuntu26.04`).
+Three values are sourced automatically — no `terraform.tfvars` entry needed:
 
-Precedence: `terraform.tfvars` / `-var` → `~/.config/linode-cli` → fallback.
+| Value         | Precedence                                                   |
+| ------------- | ------------------------------------------------------------ |
+| `region`      | `terraform.tfvars` → `~/.config/linode-cli` → `eu-west`     |
+| `instance_type` | `terraform.tfvars` → `~/.config/linode-cli` → `g6-standard-4` |
+| `image`       | `terraform.tfvars` → `~/.config/linode-cli` → `linode/ubuntu24.04` |
+| `username`    | `TF_VAR_username` / `$DEVBOX_USER` → local `$USER` at apply time |
+
+The non-root Linux user created on the box always matches your local `$USER`,
+so `ssh $USER-dev-box` just works after the SSH config install step.
 
 ## Quick start
 
@@ -61,7 +66,7 @@ Precedence: `terraform.tfvars` / `-var` → `~/.config/linode-cli` → fallback.
 # 1. Configure
 export LINODE_TOKEN="your-token-here"
 cp tofu/terraform.tfvars.example tofu/terraform.tfvars
-$EDITOR tofu/terraform.tfvars   # at minimum: authorized_keys + root_pass
+$EDITOR tofu/terraform.tfvars   # set authorized_keys + root_pass
 
 # 2. Deploy
 tofu -chdir=tofu init
@@ -70,10 +75,16 @@ tofu -chdir=tofu apply
 # 3. Wait for cloud-init to finish (5–10 min)
 eval "$(tofu -chdir=tofu output -raw wait_ready_command)"
 
-# 4. One-time VSCode tunnel setup (interactive GitHub device-code login)
+# 4. Install SSH config (idempotent — safe to re-run after re-apply)
+eval "$(tofu -chdir=tofu output -raw ssh_config_install_command)"
+
+# 5. Connect
+ssh $USER-dev-box
+
+# 6. One-time VSCode tunnel setup (interactive GitHub device-code login)
 eval "$(tofu -chdir=tofu output -raw vscode_tunnel_setup_command)"
 
-# 5. Open the tunnel
+# 7. Open the tunnel
 tofu -chdir=tofu output -raw vscode_tunnel_url
 ```
 
@@ -87,6 +98,8 @@ All helpers live as outputs whose value is a ready-to-run shell command.
 | SSH as the non-root user      | `eval "$(tofu -chdir=tofu output -raw ssh_command_user)"`                |
 | Tail cloud-init log           | `eval "$(tofu -chdir=tofu output -raw first_boot_log_command)"`          |
 | Wait for cloud-init ready     | `eval "$(tofu -chdir=tofu output -raw wait_ready_command)"`              |
+| Install ~/.ssh/config block   | `eval "$(tofu -chdir=tofu output -raw ssh_config_install_command)"`      |
+| Remove ~/.ssh/config block    | `eval "$(tofu -chdir=tofu output -raw ssh_config_remove_command)"`       |
 | Fetch kubeconfig locally      | `eval "$(tofu -chdir=tofu output -raw kubeconfig_fetch_command)"`        |
 | k3s nodes + pods over SSH     | `eval "$(tofu -chdir=tofu output -raw k3s_status_command)"`              |
 | VSCode tunnel setup (one-off) | `eval "$(tofu -chdir=tofu output -raw vscode_tunnel_setup_command)"`     |
@@ -107,29 +120,29 @@ kubectl get nodes
 Only the most relevant are listed; see `tofu/variables.tf` for the full list
 with descriptions and validation rules.
 
-| Name                       | Default                              | Notes                                                  |
-| -------------------------- | ------------------------------------ | ------------------------------------------------------ |
-| `region`                   | from `linode-cli`, else `us-east`    |                                                        |
-| `instance_type`            | from `linode-cli`, else `g6-standard-4` | 4 vCPU / 8 GB recommended minimum for k3s + agents |
-| `image`                    | from `linode-cli`, else `linode/ubuntu25.10` | Ubuntu 26.04 not yet in Akamai catalog     |
-| `instance_label`           | `dev-box`                            |                                                        |
-| `hostname`                 | (instance label)                     |                                                        |
-| `timezone`                 | `UTC`                                |                                                        |
-| `username`                 | `devuser`                            | Non-root user created by cloud-init                    |
-| `authorized_keys`          | `[]`                                 | Required for SSH access                                |
-| `root_pass`                | (required)                           | API requires it; SSH key auth is used in practice      |
-| `create_firewall`          | `true`                               |                                                        |
-| `allowed_ssh_cidrs_ipv4/6` | open                                 | Restrict to your own IPs in production                 |
-| `expose_web`               | `false`                              | Open inbound 80/443                                    |
-| `expose_k3s_api`           | `false`                              | Open inbound 6443; requires CIDR allow-lists           |
-| `install_docker`           | `true`                               |                                                        |
-| `install_k3s`              | `true`                               |                                                        |
-| `k3s_disable_components`   | `["traefik","servicelb"]`            |                                                        |
-| `install_languages`        | `["go","node","python","rust"]`      |                                                        |
-| `install_claude_code`      | `true`                               |                                                        |
-| `install_opencode`         | `true`                               |                                                        |
-| `install_vscode_tunnel`    | `true`                               | Manual `code tunnel` login on first boot               |
-| `vscode_tunnel_name`       | (hostname)                           |                                                        |
+| Name                       | Default                                   | Notes                                                  |
+| -------------------------- | ----------------------------------------- | ------------------------------------------------------ |
+| `region`                   | from `linode-cli`, else `eu-west`         |                                                        |
+| `instance_type`            | from `linode-cli`, else `g6-standard-4`   | 4 vCPU / 8 GB recommended minimum for k3s + agents    |
+| `image`                    | from `linode-cli`, else `linode/ubuntu24.04` | Ubuntu 24.04 LTS                                    |
+| `username`                 | local `$USER` at apply time               | Non-root user; override via `TF_VAR_username`          |
+| `instance_label`           | `<username>-dev-box`                      |                                                        |
+| `hostname`                 | (instance label)                          |                                                        |
+| `timezone`                 | `UTC`                                     |                                                        |
+| `authorized_keys`          | `[]`                                      | Required for SSH access                                |
+| `root_pass`                | (required)                                | API requires it; SSH key auth is used in practice      |
+| `create_firewall`          | `true`                                    |                                                        |
+| `allowed_ssh_cidrs_ipv4/6` | open                                      | Restrict to your own IPs in production                 |
+| `expose_web`               | `false`                                   | Open inbound 80/443                                    |
+| `expose_k3s_api`           | `false`                                   | Open inbound 6443; requires CIDR allow-lists           |
+| `install_docker`           | `true`                                    |                                                        |
+| `install_k3s`              | `true`                                    |                                                        |
+| `k3s_disable_components`   | `["traefik","servicelb"]`                 |                                                        |
+| `install_languages`        | `["go","node","python","rust"]`           |                                                        |
+| `install_claude_code`      | `true`                                    |                                                        |
+| `install_opencode`         | `true`                                    |                                                        |
+| `install_vscode_tunnel`    | `true`                                    | Manual `code tunnel` login on first boot               |
+| `vscode_tunnel_name`       | (hostname)                                |                                                        |
 
 ## Security notes
 
@@ -147,12 +160,12 @@ with descriptions and validation rules.
 
 ## Cost (rough, USD/month, varies by region)
 
-| Plan            | vCPU / RAM / Disk | ~/mo  |
-| --------------- | ----------------- | ----- |
-| g6-standard-2   | 2 / 4 GB / 80 GB  | $24   |
-| g6-standard-4   | 4 / 8 GB / 160 GB | $48 (default) |
-| g6-standard-6   | 4 / 16 GB / 320 GB | $96  |
-| g6-dedicated-8  | 8 / 16 GB / 640 GB | $218 |
+| Plan            | vCPU / RAM / Disk  | ~/mo          |
+| --------------- | ------------------ | ------------- |
+| g6-standard-2   | 2 / 4 GB / 80 GB   | $24           |
+| g6-standard-4   | 4 / 8 GB / 160 GB  | $48 (default) |
+| g6-standard-6   | 4 / 16 GB / 320 GB | $96           |
+| g6-dedicated-8  | 8 / 16 GB / 640 GB | $218          |
 
 Add ~$2/mo per plan if `backups_enabled = true`. Egress overages apply for
 heavy demo traffic.
@@ -181,10 +194,10 @@ heavy demo traffic.
     │       ├── 60-agents.sh
     │       └── 70-vscode-tunnel.sh
     ├── scripts/
-    │   └── read-linode-cli.sh    # local linode-cli config reader
+    │   ├── read-laptop-user.sh   # emits local $USER as JSON
+    │   └── read-linode-cli.sh    # reads ~/.config/linode-cli
     ├── main.tf
     ├── outputs.tf
-    ├── provider.tf
     ├── terraform.tfvars.example
     ├── variables.tf
     └── versions.tf
@@ -194,6 +207,7 @@ heavy demo traffic.
 
 ```sh
 tofu -chdir=tofu destroy
+eval "$(tofu -chdir=tofu output -raw ssh_config_remove_command)"
 ```
 
 Verify in the Linode console that no orphaned resources remain.
