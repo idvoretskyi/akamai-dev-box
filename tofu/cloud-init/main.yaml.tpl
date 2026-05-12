@@ -52,7 +52,7 @@ write_files:
   - path: /opt/devbox/scripts/${name}
     permissions: "0755"
     content: |
-${indent(6, script_files[name])}
+      ${indent(6, script_files[name])}
 %{ endfor ~}
 
 runcmd:
