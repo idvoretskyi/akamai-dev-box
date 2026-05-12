@@ -51,6 +51,7 @@ write_files:
       EXTRA_PACKAGES="${join(" ", extra_packages)}"
 
 runcmd:
+  - echo "127.0.1.1 ${hostname}" >> /etc/hosts
   - sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
   - systemctl restart ssh || systemctl restart sshd || true
   - mkdir -p /opt/devbox/scripts /var/log /var/lib
