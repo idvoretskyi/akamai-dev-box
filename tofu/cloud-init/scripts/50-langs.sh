@@ -39,32 +39,32 @@ fi
 EOF
   chmod +x /etc/profile.d/fnm.sh
 
-  sudo -iu "${DEVBOX_USER}" bash -lc '
-    set -e
-    eval "$(fnm env --shell bash)"
-    fnm install --lts
-    fnm default lts-latest
-  '
+  sudo -iu "${DEVBOX_USER}" bash -l <<'HEREDOC'
+set -e
+eval "$(fnm env --shell bash)"
+fnm install --lts
+fnm default lts-latest
+HEREDOC
 fi
 
 # --- Python via uv (user-local) ---
 if want python; then
-  sudo -iu "${DEVBOX_USER}" bash -lc '
-    set -e
-    if ! command -v uv >/dev/null 2>&1; then
-      curl -LsSf https://astral.sh/uv/install.sh | sh
-    fi
-  '
+  sudo -iu "${DEVBOX_USER}" bash -l <<'HEREDOC'
+set -e
+if ! command -v uv >/dev/null 2>&1; then
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+fi
+HEREDOC
 fi
 
 # --- Rust via rustup (user-local) ---
 if want rust; then
-  sudo -iu "${DEVBOX_USER}" bash -lc '
-    set -e
-    if [[ ! -x "$HOME/.cargo/bin/rustc" ]]; then
-      curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile default
-    fi
-  '
+  sudo -iu "${DEVBOX_USER}" bash -l <<'HEREDOC'
+set -e
+if [[ ! -x "$HOME/.cargo/bin/rustc" ]]; then
+  curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile default
+fi
+HEREDOC
 fi
 
 echo "[50-langs] done"
