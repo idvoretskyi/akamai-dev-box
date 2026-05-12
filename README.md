@@ -4,25 +4,28 @@
 [![Validate](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml)
 [![Trivy Security Scan](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml)
 
-Pure OpenTofu configuration that spins up a remote Ubuntu 24.04 LTS dev box on
-[Akamai Cloud](https://www.linode.com/) (formerly Linode), preloaded with k3s,
-container tooling, CNCF CLIs, common language toolchains, and AI coding agents
-(Claude Code + OpenCode). Intended to be used as a remote brain for
-agentic-coding sessions and CNCF demo work, reached over SSH and/or
+Pure OpenTofu configuration that spins up a remote Debian 13 (Trixie) dev box
+on [Akamai Cloud](https://www.linode.com/) (formerly Linode). The OS is a thin
+container-host layer — minimal base, no bloat — with k3s, Docker, CNCF CLIs,
+common language toolchains, and AI coding agents (Claude Code + OpenCode) on
+top. Intended as a remote brain for agentic-coding sessions and CNCF demo
+work, reached over SSH and/or
 [vscode.dev tunnel](https://code.visualstudio.com/docs/remote/tunnels).
 
 ## What's installed
 
-| Layer              | Tools                                                          |
-| ------------------ | -------------------------------------------------------------- |
-| OS                 | Ubuntu 24.04 LTS (Noble Numbat)                                |
-| Container runtimes | Docker CE (+ buildx, compose), containerd (via k3s)            |
-| Kubernetes         | k3s single-node (Traefik + ServiceLB disabled by default)      |
-| Kube CLIs          | kubectl, helm, k9s, stern, cilium-cli, flux, argocd, yq        |
-| Languages          | Go, Node LTS (via fnm), Python (via uv), Rust (rustup)         |
-| AI agents          | Claude Code (`@anthropic-ai/claude-code`), OpenCode            |
-| Editor             | VSCode `code` CLI + tunnel (`https://vscode.dev/tunnel/<name>`) |
-| Base utilities     | git, tmux, jq, ripgrep, fd, bat, neovim, htop                  |
+| Layer              | Tools                                                                        |
+| ------------------ | ---------------------------------------------------------------------------- |
+| OS                 | Debian 13 Trixie (thin base, no snap, EOL 2030-06-30)                        |
+| Shell              | zsh + oh-my-zsh + powerlevel10k (lean), tmux + TPM (sensible/resurrect/continuum) |
+| Modern CLIs        | fzf, zoxide, eza, delta, gh, btop, ncdu                                      |
+| Container runtimes | Docker CE (+ buildx, compose), containerd (via k3s)                          |
+| Kubernetes         | k3s single-node (Traefik + ServiceLB disabled by default)                    |
+| Kube CLIs          | kubectl, helm, k9s, stern, cilium-cli, flux, argocd, yq                      |
+| Languages          | Go, Node LTS (via fnm), Python (via uv), Rust (rustup)                       |
+| AI agents          | Claude Code (`@anthropic-ai/claude-code`), OpenCode                          |
+| Editor             | VSCode `code` CLI + tunnel (`https://vscode.dev/tunnel/<name>`)              |
+| Base utilities     | git, tmux, jq, ripgrep, fd, bat, neovim, htop                               |
 
 All toggles are exposed as variables — disable any layer you don't want.
 
@@ -30,11 +33,27 @@ All toggles are exposed as variables — disable any layer you don't want.
 
 ```
   laptop ── SSH ─────────────┐
-                             ├── Akamai VM ── k3s (single node)
-  laptop ── VSCode tunnel ───┘                ── Docker
+                             ├── Akamai VM (Debian 13) ── k3s (single node)
+  laptop ── VSCode tunnel ───┘                           ── Docker
                        (outbound HTTPS only,
                         no inbound web ports required)
 ```
+
+## Supported OS images
+
+The cloud-init bootstrap scripts are tested on Debian-family images only (they use `apt`).
+
+| Image                  | Status               | Notes                            |
+| ---------------------- | -------------------- | -------------------------------- |
+| `linode/debian13`      | **Default / tested** | Recommended — thin, EOL 2030-06  |
+| `linode/debian12`      | Supported            | EOL 2028-06                      |
+| `linode/ubuntu24.04`   | Supported            | EOL 2029-05                      |
+| `linode/ubuntu22.04`   | Supported            | EOL 2027-06                      |
+| RHEL-family (Rocky, Alma, CentOS) | Not supported | Uses `dnf`, different layout |
+| Alpine                 | Not supported        | musl libc; CNCF tools may break  |
+| Arch / Gentoo          | Not supported        | Rolling; no reproducible build   |
+
+Override via `image = "linode/ubuntu24.04"` in `terraform.tfvars` if needed.
 
 ## Prerequisites
 
@@ -50,12 +69,12 @@ All toggles are exposed as variables — disable any layer you don't want.
 
 Three values are sourced automatically — no `terraform.tfvars` entry needed:
 
-| Value         | Precedence                                                   |
-| ------------- | ------------------------------------------------------------ |
-| `region`      | `terraform.tfvars` → `~/.config/linode-cli` → `eu-west`     |
+| Value           | Precedence                                                     |
+| --------------- | -------------------------------------------------------------- |
+| `region`        | `terraform.tfvars` → `~/.config/linode-cli` → `eu-west`       |
 | `instance_type` | `terraform.tfvars` → `~/.config/linode-cli` → `g6-standard-4` |
-| `image`       | `terraform.tfvars` → `~/.config/linode-cli` → `linode/ubuntu24.04` |
-| `username`    | `TF_VAR_username` / `$DEVBOX_USER` → local `$USER` at apply time |
+| `image`         | `terraform.tfvars` → `~/.config/linode-cli` → `linode/debian13` |
+| `username`      | `TF_VAR_username` / `$DEVBOX_USER` → local `$USER` at apply time |
 
 The non-root Linux user created on the box always matches your local `$USER`,
 so `ssh $USER-dev-box` just works after the SSH config install step.
@@ -72,7 +91,7 @@ $EDITOR tofu/terraform.tfvars   # set authorized_keys + root_pass
 tofu -chdir=tofu init
 tofu -chdir=tofu apply
 
-# 3. Wait for cloud-init to finish (5–10 min)
+# 3. Wait for cloud-init to finish (10–15 min)
 eval "$(tofu -chdir=tofu output -raw wait_ready_command)"
 
 # 4. Install SSH config (idempotent — safe to re-run after re-apply)
@@ -81,10 +100,13 @@ eval "$(tofu -chdir=tofu output -raw ssh_config_install_command)"
 # 5. Connect
 ssh $USER-dev-box
 
-# 6. One-time VSCode tunnel setup (interactive GitHub device-code login)
+# 6. Start a tmux session
+tmux new -s dev
+
+# 7. One-time VSCode tunnel setup (interactive GitHub device-code login)
 eval "$(tofu -chdir=tofu output -raw vscode_tunnel_setup_command)"
 
-# 7. Open the tunnel
+# 8. Open the tunnel
 tofu -chdir=tofu output -raw vscode_tunnel_url
 ```
 
@@ -120,29 +142,30 @@ kubectl get nodes
 Only the most relevant are listed; see `tofu/variables.tf` for the full list
 with descriptions and validation rules.
 
-| Name                       | Default                                   | Notes                                                  |
-| -------------------------- | ----------------------------------------- | ------------------------------------------------------ |
-| `region`                   | from `linode-cli`, else `eu-west`         |                                                        |
-| `instance_type`            | from `linode-cli`, else `g6-standard-4`   | 4 vCPU / 8 GB recommended minimum for k3s + agents    |
-| `image`                    | from `linode-cli`, else `linode/ubuntu24.04` | Ubuntu 24.04 LTS                                    |
-| `username`                 | local `$USER` at apply time               | Non-root user; override via `TF_VAR_username`          |
-| `instance_label`           | `<username>-dev-box`                      |                                                        |
-| `hostname`                 | (instance label)                          |                                                        |
-| `timezone`                 | `UTC`                                     |                                                        |
-| `authorized_keys`          | `[]`                                      | Required for SSH access                                |
-| `root_pass`                | (required)                                | API requires it; SSH key auth is used in practice      |
-| `create_firewall`          | `true`                                    |                                                        |
-| `allowed_ssh_cidrs_ipv4/6` | open                                      | Restrict to your own IPs in production                 |
-| `expose_web`               | `false`                                   | Open inbound 80/443                                    |
-| `expose_k3s_api`           | `false`                                   | Open inbound 6443; requires CIDR allow-lists           |
-| `install_docker`           | `true`                                    |                                                        |
-| `install_k3s`              | `true`                                    |                                                        |
-| `k3s_disable_components`   | `["traefik","servicelb"]`                 |                                                        |
-| `install_languages`        | `["go","node","python","rust"]`           |                                                        |
-| `install_claude_code`      | `true`                                    |                                                        |
-| `install_opencode`         | `true`                                    |                                                        |
-| `install_vscode_tunnel`    | `true`                                    | Manual `code tunnel` login on first boot               |
-| `vscode_tunnel_name`       | (hostname)                                |                                                        |
+| Name                       | Default                                    | Notes                                                  |
+| -------------------------- | ------------------------------------------ | ------------------------------------------------------ |
+| `region`                   | from `linode-cli`, else `eu-west`          |                                                        |
+| `instance_type`            | from `linode-cli`, else `g6-standard-4`    | 4 vCPU / 8 GB recommended minimum for k3s + agents    |
+| `image`                    | from `linode-cli`, else `linode/debian13`  | Debian 13 Trixie; see Supported OS images above        |
+| `username`                 | local `$USER` at apply time                | Non-root user; override via `TF_VAR_username`          |
+| `instance_label`           | `<username>-dev-box`                       |                                                        |
+| `hostname`                 | (instance label)                           |                                                        |
+| `timezone`                 | `UTC`                                      |                                                        |
+| `authorized_keys`          | `[]`                                       | Required for SSH access                                |
+| `root_pass`                | (required)                                 | API requires it; SSH key auth is used in practice      |
+| `create_firewall`          | `true`                                     |                                                        |
+| `allowed_ssh_cidrs_ipv4/6` | open                                       | Restrict to your own IPs in production                 |
+| `expose_web`               | `false`                                    | Open inbound 80/443                                    |
+| `expose_k3s_api`           | `false`                                    | Open inbound 6443; requires CIDR allow-lists           |
+| `install_docker`           | `true`                                     |                                                        |
+| `install_k3s`              | `true`                                     |                                                        |
+| `k3s_disable_components`   | `["traefik","servicelb"]`                  |                                                        |
+| `install_languages`        | `["go","node","python","rust"]`            |                                                        |
+| `install_claude_code`      | `true`                                     |                                                        |
+| `install_opencode`         | `true`                                     |                                                        |
+| `install_vscode_tunnel`    | `true`                                     | Manual `code tunnel` login on first boot               |
+| `vscode_tunnel_name`       | (hostname)                                 |                                                        |
+| `install_shell_stack`      | `true`                                     | zsh + omz + p10k + tmux + fzf/zoxide/eza/delta/gh/btop/ncdu |
 
 ## Security notes
 
@@ -186,13 +209,14 @@ heavy demo traffic.
     ├── cloud-init/
     │   ├── main.yaml.tpl         # cloud-config template
     │   └── scripts/
-    │       ├── 10-base.sh
-    │       ├── 20-docker.sh
-    │       ├── 30-k3s.sh
-    │       ├── 40-kube-tools.sh
-    │       ├── 50-langs.sh
-    │       ├── 60-agents.sh
-    │       └── 70-vscode-tunnel.sh
+    │       ├── 10-base.sh        # apt baseline, sysctl, swap
+    │       ├── 20-docker.sh      # Docker CE (distro-aware: debian + ubuntu)
+    │       ├── 30-k3s.sh         # k3s single-node server
+    │       ├── 40-kube-tools.sh  # kubectl, helm, k9s, stern, cilium-cli, flux, argocd, yq
+    │       ├── 50-langs.sh       # Go, Node/fnm, Python/uv, Rust
+    │       ├── 60-agents.sh      # Claude Code + OpenCode via npm
+    │       ├── 70-vscode-tunnel.sh # VSCode code CLI + MOTD
+    │       └── 80-shell.sh       # zsh + omz + p10k + tmux + modern CLIs
     ├── scripts/
     │   ├── read-laptop-user.sh   # emits local $USER as JSON
     │   └── read-linode-cli.sh    # reads ~/.config/linode-cli
@@ -220,6 +244,7 @@ PRs welcome. Before opening one:
 tofu -chdir=tofu fmt -recursive
 tofu -chdir=tofu init -backend=false
 tofu -chdir=tofu validate
+shellcheck tofu/cloud-init/scripts/*.sh tofu/scripts/*.sh
 ```
 
 ## License
