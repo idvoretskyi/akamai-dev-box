@@ -8,22 +8,21 @@ OpenTofu configuration that spins up a remote Ubuntu 24.04 LTS dev box on
 [Akamai Cloud](https://www.linode.com/) (formerly Linode), reachable over SSH
 and/or a [vscode.dev tunnel](https://code.visualstudio.com/docs/remote/tunnels).
 
-## What's installed
+## What's installed by default
 
-| Layer              | Tools                                                              |
-| ------------------ | ------------------------------------------------------------------ |
-| OS                 | Ubuntu 24.04 LTS (no snap bloat)                                   |
-| Shell              | zsh + oh-my-zsh, tmux                                              |
-| Modern CLIs        | fzf, zoxide, eza, delta, gh                                        |
-| Container runtimes | Docker CE (+ buildx, compose), containerd (via k3s)               |
-| Kubernetes         | k3s single-node (Traefik + ServiceLB disabled by default)          |
-| Kube CLIs          | kubectl, helm, k9s, stern, yq                                      |
-| Languages          | Go, Node LTS (via fnm), Python (via uv)                            |
-| AI agents          | Claude Code (`@anthropic-ai/claude-code`), OpenCode                |
-| Editor             | VSCode `code` CLI + tunnel (`https://vscode.dev/tunnel/<name>`)    |
-| Base utilities     | git, curl, jq, unzip, build-essential                              |
+The base image always includes: `git`, `curl`, `jq`, `unzip`, `build-essential`, swap, and sysctl tuning. Docker CE is the only optional layer that defaults to on.
 
-All layers are toggled by variables — disable anything you don't need.
+Everything else is **opt-in** via variables:
+
+| Layer              | Variable               | Default  | Tools                                                   |
+| ------------------ | ---------------------- | -------- | ------------------------------------------------------- |
+| Container runtime  | `install_docker`       | `true`   | Docker CE (+ buildx, compose)                           |
+| Kubernetes         | `install_k3s`          | `false`  | k3s single-node + kubectl, helm, k9s, stern, yq         |
+| Languages          | `install_languages`    | `[]`     | go, node (fnm), python (uv), rust                       |
+| AI agents          | `install_claude_code`  | `false`  | `@anthropic-ai/claude-code`                             |
+|                    | `install_opencode`     | `false`  | OpenCode                                                |
+| Editor             | `install_vscode_tunnel`| `false`  | VSCode `code` CLI + tunnel                              |
+| Shell              | `install_shell_stack`  | `false`  | zsh + oh-my-zsh, tmux, fzf, zoxide, eza, delta, gh     |
 
 ## Prerequisites
 
@@ -98,7 +97,13 @@ See `tofu/variables.tf` for the full list. Key variables:
 | `region`                   | from `linode-cli`, else `eu-west`       |                                                  |
 | `instance_type`            | from `linode-cli`, else `g6-standard-4` | 4 vCPU / 8 GB minimum recommended               |
 | `allowed_ssh_cidrs_ipv4/6` | open                                    | Restrict to your IPs in production               |
-| `install_languages`        | `["go","node","python"]`                | Add `"rust"` if needed                           |
+| `install_docker`           | `true`                                  |                                                  |
+| `install_k3s`              | `false`                                 |                                                  |
+| `install_languages`        | `[]`                                    | Add `"go"`, `"node"`, `"python"`, `"rust"` as needed |
+| `install_claude_code`      | `false`                                 |                                                  |
+| `install_opencode`         | `false`                                 |                                                  |
+| `install_vscode_tunnel`    | `false`                                 | Requires one-time interactive login              |
+| `install_shell_stack`      | `false`                                 | zsh + tmux + modern CLIs                        |
 
 ## Security notes
 
