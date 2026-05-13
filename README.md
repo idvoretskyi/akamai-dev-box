@@ -18,11 +18,11 @@ work, reached over SSH and/or
 | ------------------ | ---------------------------------------------------------------------------- |
 | OS                 | Ubuntu 24.04 LTS Noble (thin base, no snap bloat, EOL 2029-04)               |
 | Shell              | zsh + oh-my-zsh (robbyrussell), tmux (custom Nord theme)                     |
-| Modern CLIs        | fzf, zoxide, eza, delta, gh, btop, ncdu                                      |
+| Modern CLIs        | fzf, zoxide, eza, delta, gh                                                  |
 | Container runtimes | Docker CE (+ buildx, compose), containerd (via k3s)                          |
 | Kubernetes         | k3s single-node (Traefik + ServiceLB disabled by default)                    |
 | Kube CLIs          | kubectl, helm, k9s, stern, yq                                                |
-| Languages          | Go, Node LTS (via fnm), Python (via uv), Rust (rustup)                       |
+| Languages          | Go, Node LTS (via fnm), Python (via uv)                                      |
 | AI agents          | Claude Code (`@anthropic-ai/claude-code`), OpenCode                          |
 | Editor             | VSCode `code` CLI + tunnel (`https://vscode.dev/tunnel/<name>`)              |
 | Base utilities     | git, curl, jq, unzip, build-essential                                        |
@@ -38,18 +38,6 @@ All toggles are exposed as variables — disable any layer you don't want.
                        (outbound HTTPS only,
                         no inbound web ports required)
 ```
-
-## Supported OS images
-
-The cloud-init bootstrap scripts target Ubuntu 24.04 LTS.
-
-| Image                  | Status               | Notes                            |
-| ---------------------- | -------------------- | -------------------------------- |
-| `linode/ubuntu24.04`   | **Default / tested** | Recommended — Ubuntu LTS, EOL 2029-04 |
-| Custom / private       | Supported            | Any `private/` image that is Ubuntu 24.04-compatible |
-| Other distributions    | Not supported        | Scripts use `apt` and Ubuntu-specific conventions |
-
-Override via `image = "private/your-image"` in `terraform.tfvars` if needed.
 
 ## Prerequisites
 
@@ -156,12 +144,12 @@ with descriptions and validation rules.
 | `install_docker`           | `true`                                     |                                                        |
 | `install_k3s`              | `true`                                     |                                                        |
 | `k3s_disable_components`   | `["traefik","servicelb"]`                  |                                                        |
-| `install_languages`        | `["go","node","python","rust"]`            |                                                        |
+| `install_languages`        | `["go","node","python"]`                   | Add `"rust"` if needed                                 |
 | `install_claude_code`      | `true`                                     |                                                        |
 | `install_opencode`         | `true`                                     |                                                        |
 | `install_vscode_tunnel`    | `true`                                     | Manual `code tunnel` login on first boot               |
 | `vscode_tunnel_name`       | (hostname)                                 |                                                        |
-| `install_shell_stack`      | `true`                                     | zsh + omz + tmux + fzf/zoxide/eza/delta/gh/btop/ncdu |
+| `install_shell_stack`      | `true`                                     | zsh + omz + tmux + fzf/zoxide/eza/delta/gh            |
 
 ## Security notes
 

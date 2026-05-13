@@ -231,7 +231,7 @@ variable "k3s_disable_components" {
 variable "install_languages" {
   description = "Language toolchains to install for the non-root user."
   type        = set(string)
-  default     = ["go", "node", "python", "rust"]
+  default     = ["go", "node", "python"]
 
   validation {
     condition     = length(setsubtract(var.install_languages, ["go", "node", "python", "rust"])) == 0
@@ -269,7 +269,7 @@ variable "vscode_tunnel_name" {
 }
 
 variable "install_shell_stack" {
-  description = "Install zsh + oh-my-zsh + powerlevel10k + tmux (TPM) + modern CLI essentials (fzf, zoxide, eza, delta, gh, btop, ncdu) for the non-root user. Sets zsh as the default login shell."
+  description = "Install zsh + oh-my-zsh + tmux + modern CLI essentials (fzf, zoxide, eza, delta, gh) for the non-root user. Sets zsh as the default login shell."
   type        = bool
   default     = true
 }
