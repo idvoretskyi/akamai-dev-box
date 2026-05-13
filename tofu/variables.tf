@@ -205,15 +205,15 @@ variable "extra_packages" {
 }
 
 variable "install_docker" {
-  description = "Install Docker CE (with buildx and compose plugins) alongside k3s' bundled containerd."
+  description = "Install Docker CE (with buildx and compose plugins)."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "install_k3s" {
   description = "Install single-node k3s server."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "k3s_channel" {
@@ -231,7 +231,7 @@ variable "k3s_disable_components" {
 variable "install_languages" {
   description = "Language toolchains to install for the non-root user."
   type        = set(string)
-  default     = ["go", "node", "python"]
+  default     = []
 
   validation {
     condition     = length(setsubtract(var.install_languages, ["go", "node", "python", "rust"])) == 0
@@ -242,19 +242,19 @@ variable "install_languages" {
 variable "install_claude_code" {
   description = "Install the Claude Code CLI (@anthropic-ai/claude-code) for the non-root user via npm."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "install_opencode" {
   description = "Install the OpenCode CLI (opencode-ai) for the non-root user via npm."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "install_vscode_tunnel" {
   description = "Install the VSCode `code` CLI on the box. Tunnel must be activated manually on first SSH (one-time GitHub device-code login)."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "vscode_tunnel_name" {
@@ -271,5 +271,5 @@ variable "vscode_tunnel_name" {
 variable "install_shell_stack" {
   description = "Install zsh + oh-my-zsh + tmux + modern CLI essentials (fzf, zoxide, eza, delta, gh) for the non-root user. Sets zsh as the default login shell."
   type        = bool
-  default     = true
+  default     = false
 }
