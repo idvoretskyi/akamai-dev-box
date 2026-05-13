@@ -1,36 +1,31 @@
 ###############################################################################
 # Source defaults from the local linode-cli config when variables are unset.
 # Precedence: terraform.tfvars / -var  ->  ~/.config/linode-cli  ->  fallback.
+# The deploy username is derived from the local $USER at plan/apply time.
 ###############################################################################
 
 data "external" "linode_cli" {
   program = ["bash", "${path.module}/scripts/read-linode-cli.sh"]
 }
 
+data "external" "laptop_user" {
+  program = ["bash", "${path.module}/scripts/read-laptop-user.sh"]
+}
+
 locals {
   cli = data.external.linode_cli.result
 
-  region        = coalesce(var.region, try(local.cli.region, ""), "us-east")
+  region        = coalesce(var.region, try(local.cli.region, ""), "eu-west")
   instance_type = coalesce(var.instance_type, try(local.cli.type, ""), "g6-standard-4")
-  image         = coalesce(var.image, try(local.cli.image, ""), "linode/ubuntu25.10")
+  image         = coalesce(var.image, try(local.cli.image, ""), "linode/debian13")
 
-  username     = coalesce(var.username, "devuser")
-  hostname     = var.hostname == "" ? var.instance_label : var.hostname
-  tunnel_name  = var.vscode_tunnel_name == "" ? local.hostname : var.vscode_tunnel_name
-  scripts_path = "${path.module}/cloud-init/scripts"
-
-  # Order matters: each script is idempotent and gated by its toggle in env.
-  scripts = [
-    "10-base.sh",
-    "20-docker.sh",
-    "30-k3s.sh",
-    "40-kube-tools.sh",
-    "50-langs.sh",
-    "60-agents.sh",
-    "70-vscode-tunnel.sh",
-  ]
-
-  script_files = { for s in local.scripts : s => file("${local.scripts_path}/${s}") }
+  username    = coalesce(var.username, data.external.laptop_user.result.username)
+  instance    = coalesce(var.instance_label, "${local.username}-dev-box")
+  hostname    = var.hostname == "" ? local.instance : var.hostname
+  tunnel_name = var.vscode_tunnel_name == "" ? local.hostname : var.vscode_tunnel_name
+  # Git ref used to fetch scripts from GitHub at boot time.
+  # Uses the current HEAD commit SHA for a stable, pinned reference.
+  git_ref = "5156ba51660e0bbf265e9daace1b3ef055ff4ce3"
 
   cloud_init = templatefile("${path.module}/cloud-init/main.yaml.tpl", {
     username           = local.username
@@ -47,8 +42,8 @@ locals {
     install_opencode   = var.install_opencode
     install_vscode     = var.install_vscode_tunnel
     vscode_tunnel_name = local.tunnel_name
-    scripts            = local.scripts
-    script_files       = local.script_files
+    install_shell      = var.install_shell_stack
+    git_ref            = local.git_ref
   })
 
   # Firewall: SSH always; HTTP/HTTPS only if expose_web; 6443 only if expose_k3s_api.
@@ -87,7 +82,7 @@ locals {
 }
 
 resource "linode_instance" "dev_box" {
-  label           = var.instance_label
+  label           = local.instance
   image           = local.image
   region          = local.region
   type            = local.instance_type
@@ -102,16 +97,22 @@ resource "linode_instance" "dev_box" {
   }
 
   lifecycle {
-    ignore_changes = [
-      root_pass,
-    ]
+    precondition {
+      condition     = can(regex("^[a-z_][a-z0-9_-]{0,31}$", local.username))
+      error_message = "Resolved deploy username '${local.username}' is not a valid Linux username. Set TF_VAR_username or ensure your local $USER is a valid Linux username (lowercase, max 32 chars)."
+    }
+    precondition {
+      condition     = can(regex("^(linode/(debian1[23]|ubuntu(22\\.04|24\\.04))|private/)", local.image))
+      error_message = "Unsupported image '${local.image}'. Supported images: linode/debian13, linode/debian12, linode/ubuntu24.04, linode/ubuntu22.04, or any private/ image."
+    }
+    ignore_changes = [root_pass]
   }
 }
 
 resource "linode_firewall" "dev_box_fw" {
   count = var.create_firewall ? 1 : 0
 
-  label = "${var.instance_label}-firewall"
+  label = "${local.instance}-firewall"
   tags  = var.tags
 
   inbound_policy  = "DROP"

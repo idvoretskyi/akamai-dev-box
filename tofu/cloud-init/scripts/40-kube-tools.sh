@@ -17,6 +17,9 @@ if ! command -v kubectl >/dev/null; then
   install_bin "$tmp/kubectl"
 fi
 
+# Convenience symlink: k -> kubectl (installed above).
+ln -sf /usr/local/bin/kubectl /usr/local/bin/k || true
+
 # --- helm ---
 if ! command -v helm >/dev/null; then
   curl -sfL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash >/dev/null

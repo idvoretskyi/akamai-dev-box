@@ -3,19 +3,19 @@
 ###############################################################################
 
 variable "region" {
-  description = "Akamai (Linode) region slug. Leave null to inherit from ~/.config/linode-cli, then falls back to us-east."
+  description = "Akamai (Linode) region slug. Optional — inherits from ~/.config/linode-cli, then falls back to eu-west."
   type        = string
   default     = null
   nullable    = true
 
   validation {
     condition     = var.region == null || can(regex("^[a-z]{2,3}-[a-z]+(-[0-9]+)?$", var.region))
-    error_message = "Region must look like a valid Akamai region slug (e.g. us-east, eu-west, ap-south, us-mia)."
+    error_message = "Region must look like a valid Akamai region slug (e.g. eu-west, us-east, ap-south)."
   }
 }
 
 variable "instance_type" {
-  description = "Akamai (Linode) instance plan. Leave null to inherit from ~/.config/linode-cli, then falls back to g6-standard-4."
+  description = "Akamai (Linode) instance plan. Optional — inherits from ~/.config/linode-cli, then falls back to g6-standard-4."
   type        = string
   default     = null
   nullable    = true
@@ -27,18 +27,19 @@ variable "instance_type" {
 }
 
 variable "instance_label" {
-  description = "Label for the instance (and base for derived names)."
+  description = "Label for the Linode instance and base for derived names (firewall, hostname, tunnel). Defaults to <username>-dev-box when null."
   type        = string
-  default     = "dev-box"
+  default     = null
+  nullable    = true
 
   validation {
-    condition     = can(regex("^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$", var.instance_label))
+    condition     = var.instance_label == null || can(regex("^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$", var.instance_label))
     error_message = "Instance label must start with a letter or digit and contain only letters, digits, hyphens, or underscores (max 64 chars)."
   }
 }
 
 variable "image" {
-  description = "Akamai image slug. Leave null to inherit from ~/.config/linode-cli, then falls back to linode/ubuntu25.10. Ubuntu 26.04 is not yet available on Akamai; update this once it appears in `linode-cli images list --vendor Ubuntu`."
+  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/debian13 (Debian 13 Trixie). Supported: linode/debian13, linode/debian12, linode/ubuntu24.04, linode/ubuntu22.04."
   type        = string
   default     = null
   nullable    = true
@@ -74,7 +75,7 @@ variable "timezone" {
 variable "tags" {
   description = "Tags to apply to the instance and firewall."
   type        = list(string)
-  default     = ["dev", "devbox", "k3s", "ubuntu"]
+  default     = ["dev", "devbox", "k3s", "debian"]
 }
 
 variable "private_ip" {
@@ -94,7 +95,7 @@ variable "backups_enabled" {
 ###############################################################################
 
 variable "username" {
-  description = "Non-root user to create via cloud-init. Defaults to 'devuser' if null."
+  description = "Non-root Linux user to create on the box. Defaults to the local $USER at apply time (override via TF_VAR_username or $DEVBOX_USER). Must be a valid Linux username."
   type        = string
   default     = null
   nullable    = true
@@ -265,4 +266,10 @@ variable "vscode_tunnel_name" {
     condition     = var.vscode_tunnel_name == "" || can(regex("^[a-z0-9][a-z0-9-]{0,38}$", var.vscode_tunnel_name))
     error_message = "Tunnel name must be 1-39 chars of lowercase letters, digits, or hyphens, starting with a letter or digit."
   }
+}
+
+variable "install_shell_stack" {
+  description = "Install zsh + oh-my-zsh + powerlevel10k + tmux (TPM) + modern CLI essentials (fzf, zoxide, eza, delta, gh, btop, ncdu) for the non-root user. Sets zsh as the default login shell."
+  type        = bool
+  default     = true
 }

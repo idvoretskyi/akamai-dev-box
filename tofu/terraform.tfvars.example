@@ -1,6 +1,10 @@
 # akamai-dev-box — example variables
-# Copy to terraform.tfvars and customise. Variables left commented inherit
-# values from your local ~/.config/linode-cli (region, instance_type, image).
+# Copy to terraform.tfvars and customise.
+#
+# region, instance_type, image, and username are all sourced automatically:
+#   - region / instance_type / image  from ~/.config/linode-cli (then built-in fallbacks)
+#   - username                         from your local $USER at apply time
+# Only authorized_keys and root_pass are required here.
 
 ###############################################################################
 # Required
@@ -16,23 +20,23 @@ authorized_keys = [
 root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD_AT_LEAST_16_CHARS"
 
 ###############################################################################
-# Optional — inherited from ~/.config/linode-cli when left unset
+# Optional — inherited from ~/.config/linode-cli / $USER when left unset
 ###############################################################################
 
-# region        = "us-east"
-# instance_type = "g6-standard-4"   # 4 vCPU / 8 GB / 160 GB
-# image         = "linode/ubuntu25.10"   # newest available; update to linode/ubuntu26.04 once released on Akamai
+# region        = "eu-west"          # London; falls back to linode-cli, then eu-west
+# instance_type = "g6-standard-4"    # 4 vCPU / 8 GB / 160 GB
+# image         = "linode/debian13"  # Default. Supported: debian13, debian12, ubuntu24.04, ubuntu22.04
+# username      = "yourname"         # defaults to local $USER at apply time
 
 ###############################################################################
 # Instance basics
 ###############################################################################
 
-# instance_label = "dev-box"
-# hostname       = ""        # defaults to instance_label
-# timezone       = "UTC"
-# username       = "devuser"
-# tags           = ["dev", "devbox", "k3s", "ubuntu"]
-# private_ip     = false
+# instance_label  = ""       # defaults to <username>-dev-box
+# hostname        = ""       # defaults to instance_label
+# timezone        = "UTC"
+# tags            = ["dev", "devbox", "k3s", "debian"]
+# private_ip      = false
 # backups_enabled = false
 
 ###############################################################################
@@ -57,13 +61,14 @@ root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD_AT_LEAST_16_CHARS"
 # Cloud-init toggles
 ###############################################################################
 
-# extra_packages       = []
-# install_docker       = true
-# install_k3s          = true
-# k3s_channel          = "stable"
+# extra_packages         = []
+# install_docker         = true
+# install_k3s            = true
+# k3s_channel            = "stable"
 # k3s_disable_components = ["traefik", "servicelb"]
-# install_languages    = ["go", "node", "python", "rust"]
-# install_claude_code  = true
-# install_opencode     = true
-# install_vscode_tunnel = true
-# vscode_tunnel_name   = ""   # defaults to hostname
+# install_languages      = ["go", "node", "python", "rust"]
+# install_claude_code    = true
+# install_opencode       = true
+# install_vscode_tunnel  = true
+# vscode_tunnel_name     = ""   # defaults to hostname
+# install_shell_stack    = true # zsh + omz + p10k + tmux + fzf/zoxide/eza/delta/gh/btop/ncdu
