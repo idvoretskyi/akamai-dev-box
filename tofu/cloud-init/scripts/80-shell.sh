@@ -14,8 +14,8 @@ export DEBIAN_FRONTEND=noninteractive
 
 # System packages
 apt-get install -y --no-install-recommends \
-  zsh tmux fzf zoxide eza bat ncdu btop git-delta \
-  fonts-powerline unzip less locales
+  zsh tmux fzf zoxide eza bat git-delta \
+  unzip less locales
 
 # GitHub CLI
 if ! command -v gh >/dev/null 2>&1; then
@@ -55,7 +55,7 @@ HEREDOC
 cat >"${user_home}/.zshrc" <<'ZSHRC'
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="robbyrussell"
-plugins=(git docker docker-compose kubectl helm golang rust python pip fzf zoxide tmux terraform gh aws gcloud opentofu command-not-found zsh-autosuggestions zsh-syntax-highlighting)
+plugins=(git docker docker-compose kubectl helm golang python pip fzf zoxide tmux terraform gh opentofu command-not-found zsh-autosuggestions zsh-syntax-highlighting)
 source "$ZSH/oh-my-zsh.sh"
 alias k=kubectl
 alias ll='eza -lah --icons --git'
