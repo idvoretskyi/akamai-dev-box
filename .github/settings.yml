@@ -17,6 +17,14 @@ repository:
   allow_rebase_merge: false
   delete_branch_on_merge: true
 
+labels:
+  - name: dependencies
+    color: "0366d6"
+    description: Pull requests that update dependencies
+  - name: ci
+    color: "1d76db"
+    description: Changes to CI workflows and automation
+
 branches:
   - name: main
     protection:
