@@ -23,10 +23,10 @@ root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD_AT_LEAST_16_CHARS"
 # Optional — inherited from ~/.config/linode-cli / $USER when left unset
 ###############################################################################
 
-# region        = "eu-west"          # London; falls back to linode-cli, then eu-west
-# instance_type = "g6-standard-4"    # 4 vCPU / 8 GB / 160 GB
-# image         = "linode/debian13"  # Default. Supported: debian13, debian12, ubuntu24.04, ubuntu22.04
-# username      = "yourname"         # defaults to local $USER at apply time
+# region        = "eu-west"            # London; falls back to linode-cli, then eu-west
+# instance_type = "g6-standard-4"      # 4 vCPU / 8 GB / 160 GB
+# image         = "linode/ubuntu24.04" # Default. Supported: ubuntu24.04 or any private/ image
+# username      = "yourname"           # defaults to local $USER at apply time
 
 ###############################################################################
 # Instance basics
@@ -35,7 +35,7 @@ root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD_AT_LEAST_16_CHARS"
 # instance_label  = ""       # defaults to <username>-dev-box
 # hostname        = ""       # defaults to instance_label
 # timezone        = "UTC"
-# tags            = ["dev", "devbox", "k3s", "debian"]
+# tags            = ["dev", "devbox", "ubuntu"]
 # private_ip      = false
 # backups_enabled = false
 

@@ -39,7 +39,7 @@ variable "instance_label" {
 }
 
 variable "image" {
-  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/debian13 (Debian 13 Trixie). Supported: linode/debian13, linode/debian12, linode/ubuntu24.04, linode/ubuntu22.04."
+  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/ubuntu24.04 (Ubuntu 24.04 LTS Noble). Supported: linode/ubuntu24.04 or any private/ image."
   type        = string
   default     = null
   nullable    = true
@@ -75,7 +75,7 @@ variable "timezone" {
 variable "tags" {
   description = "Tags to apply to the instance and firewall."
   type        = list(string)
-  default     = ["dev", "devbox", "k3s", "debian"]
+  default     = ["dev", "devbox", "ubuntu"]
 }
 
 variable "private_ip" {
