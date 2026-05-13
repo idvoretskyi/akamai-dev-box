@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 40-kube-tools.sh — kubectl, helm, k9s, stern, cilium-cli, flux, argocd, yq.
+# 40-kube-tools.sh — kubectl, helm, k9s, stern, yq.
 set -euo pipefail
 # shellcheck disable=SC1091
 source /etc/devbox/env
@@ -38,25 +38,6 @@ if ! command -v stern >/dev/null; then
   curl -sfL "https://github.com/stern/stern/releases/download/v${stern_ver}/stern_${stern_ver}_linux_${arch}.tar.gz" \
     | tar -xz -C "$tmp" stern
   install_bin "$tmp/stern"
-fi
-
-# --- cilium-cli ---
-if ! command -v cilium >/dev/null; then
-  cil_ver="$(curl -sfL https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)"
-  curl -sfL "https://github.com/cilium/cilium-cli/releases/download/${cil_ver}/cilium-linux-${arch}.tar.gz" \
-    | tar -xz -C "$tmp" cilium
-  install_bin "$tmp/cilium"
-fi
-
-# --- flux ---
-if ! command -v flux >/dev/null; then
-  curl -sfL https://fluxcd.io/install.sh | bash >/dev/null
-fi
-
-# --- argocd ---
-if ! command -v argocd >/dev/null; then
-  curl -sfLo "$tmp/argocd" "https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-${arch}"
-  install_bin "$tmp/argocd"
 fi
 
 # --- yq ---

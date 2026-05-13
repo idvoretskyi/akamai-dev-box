@@ -13,25 +13,15 @@ export DEBIAN_FRONTEND=noninteractive
 
 # shellcheck disable=SC1091
 . /etc/os-release
-
-case "${ID:-}" in
-  ubuntu) docker_distro="ubuntu" ;;
-  debian) docker_distro="debian" ;;
-  *)
-    echo "[20-docker] unsupported distro '${ID:-unknown}' — only ubuntu and debian are supported"
-    exit 1
-    ;;
-esac
+codename="${UBUNTU_CODENAME:-${VERSION_CODENAME:-}}"
 
 install -m 0755 -d /etc/apt/keyrings
-curl -fsSL "https://download.docker.com/linux/${docker_distro}/gpg" \
+curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" \
   | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
 
-codename="${UBUNTU_CODENAME:-${VERSION_CODENAME:-}}"
-
 cat >/etc/apt/sources.list.d/docker.list <<EOF
-deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/${docker_distro} ${codename} stable
+deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${codename} stable
 EOF
 
 apt-get update -y

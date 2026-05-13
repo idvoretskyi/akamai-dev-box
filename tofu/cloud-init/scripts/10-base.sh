@@ -9,12 +9,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get install -y --no-install-recommends \
   build-essential \
-  apt-transport-https \
-  wget \
-  ripgrep \
-  fd-find \
-  bat \
-  neovim
+  wget
 
 # Sysctl tuning for k3s + container workloads.
 cat >/etc/sysctl.d/99-devbox.conf <<EOF

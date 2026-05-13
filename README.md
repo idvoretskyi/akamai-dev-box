@@ -4,7 +4,7 @@
 [![Validate](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml)
 [![Trivy Security Scan](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml)
 
-Pure OpenTofu configuration that spins up a remote Debian 13 (Trixie) dev box
+Pure OpenTofu configuration that spins up a remote Ubuntu 24.04 LTS dev box
 on [Akamai Cloud](https://www.linode.com/) (formerly Linode). The OS is a thin
 container-host layer — minimal base, no bloat — with k3s, Docker, CNCF CLIs,
 common language toolchains, and AI coding agents (Claude Code + OpenCode) on
@@ -16,16 +16,16 @@ work, reached over SSH and/or
 
 | Layer              | Tools                                                                        |
 | ------------------ | ---------------------------------------------------------------------------- |
-| OS                 | Debian 13 Trixie (thin base, no snap, EOL 2030-06-30)                        |
-| Shell              | zsh + oh-my-zsh + powerlevel10k (lean), tmux + TPM (sensible/resurrect/continuum) |
+| OS                 | Ubuntu 24.04 LTS Noble (thin base, no snap bloat, EOL 2029-04)               |
+| Shell              | zsh + oh-my-zsh (robbyrussell), tmux (custom Nord theme)                     |
 | Modern CLIs        | fzf, zoxide, eza, delta, gh, btop, ncdu                                      |
 | Container runtimes | Docker CE (+ buildx, compose), containerd (via k3s)                          |
 | Kubernetes         | k3s single-node (Traefik + ServiceLB disabled by default)                    |
-| Kube CLIs          | kubectl, helm, k9s, stern, cilium-cli, flux, argocd, yq                      |
+| Kube CLIs          | kubectl, helm, k9s, stern, yq                                                |
 | Languages          | Go, Node LTS (via fnm), Python (via uv), Rust (rustup)                       |
 | AI agents          | Claude Code (`@anthropic-ai/claude-code`), OpenCode                          |
 | Editor             | VSCode `code` CLI + tunnel (`https://vscode.dev/tunnel/<name>`)              |
-| Base utilities     | git, tmux, jq, ripgrep, fd, bat, neovim, htop                               |
+| Base utilities     | git, curl, jq, unzip, build-essential                                        |
 
 All toggles are exposed as variables — disable any layer you don't want.
 
@@ -33,27 +33,23 @@ All toggles are exposed as variables — disable any layer you don't want.
 
 ```
   laptop ── SSH ─────────────┐
-                             ├── Akamai VM (Debian 13) ── k3s (single node)
-  laptop ── VSCode tunnel ───┘                           ── Docker
+                             ├── Akamai VM (Ubuntu 24.04) ── k3s (single node)
+  laptop ── VSCode tunnel ───┘                            ── Docker
                        (outbound HTTPS only,
                         no inbound web ports required)
 ```
 
 ## Supported OS images
 
-The cloud-init bootstrap scripts are tested on Debian-family images only (they use `apt`).
+The cloud-init bootstrap scripts target Ubuntu 24.04 LTS.
 
 | Image                  | Status               | Notes                            |
 | ---------------------- | -------------------- | -------------------------------- |
-| `linode/debian13`      | **Default / tested** | Recommended — thin, EOL 2030-06  |
-| `linode/debian12`      | Supported            | EOL 2028-06                      |
-| `linode/ubuntu24.04`   | Supported            | EOL 2029-05                      |
-| `linode/ubuntu22.04`   | Supported            | EOL 2027-06                      |
-| RHEL-family (Rocky, Alma, CentOS) | Not supported | Uses `dnf`, different layout |
-| Alpine                 | Not supported        | musl libc; CNCF tools may break  |
-| Arch / Gentoo          | Not supported        | Rolling; no reproducible build   |
+| `linode/ubuntu24.04`   | **Default / tested** | Recommended — Ubuntu LTS, EOL 2029-04 |
+| Custom / private       | Supported            | Any `private/` image that is Ubuntu 24.04-compatible |
+| Other distributions    | Not supported        | Scripts use `apt` and Ubuntu-specific conventions |
 
-Override via `image = "linode/ubuntu24.04"` in `terraform.tfvars` if needed.
+Override via `image = "private/your-image"` in `terraform.tfvars` if needed.
 
 ## Prerequisites
 
@@ -73,7 +69,7 @@ Three values are sourced automatically — no `terraform.tfvars` entry needed:
 | --------------- | -------------------------------------------------------------- |
 | `region`        | `terraform.tfvars` → `~/.config/linode-cli` → `eu-west`       |
 | `instance_type` | `terraform.tfvars` → `~/.config/linode-cli` → `g6-standard-4` |
-| `image`         | `terraform.tfvars` → `~/.config/linode-cli` → `linode/debian13` |
+| `image`         | `terraform.tfvars` → `~/.config/linode-cli` → `linode/ubuntu24.04` |
 | `username`      | `TF_VAR_username` / `$DEVBOX_USER` → local `$USER` at apply time |
 
 The non-root Linux user created on the box always matches your local `$USER`,
@@ -146,7 +142,7 @@ with descriptions and validation rules.
 | -------------------------- | ------------------------------------------ | ------------------------------------------------------ |
 | `region`                   | from `linode-cli`, else `eu-west`          |                                                        |
 | `instance_type`            | from `linode-cli`, else `g6-standard-4`    | 4 vCPU / 8 GB recommended minimum for k3s + agents    |
-| `image`                    | from `linode-cli`, else `linode/debian13`  | Debian 13 Trixie; see Supported OS images above        |
+| `image`                    | from `linode-cli`, else `linode/ubuntu24.04` | Ubuntu 24.04 LTS; see Supported OS images above        |
 | `username`                 | local `$USER` at apply time                | Non-root user; override via `TF_VAR_username`          |
 | `instance_label`           | `<username>-dev-box`                       |                                                        |
 | `hostname`                 | (instance label)                           |                                                        |
@@ -165,7 +161,7 @@ with descriptions and validation rules.
 | `install_opencode`         | `true`                                     |                                                        |
 | `install_vscode_tunnel`    | `true`                                     | Manual `code tunnel` login on first boot               |
 | `vscode_tunnel_name`       | (hostname)                                 |                                                        |
-| `install_shell_stack`      | `true`                                     | zsh + omz + p10k + tmux + fzf/zoxide/eza/delta/gh/btop/ncdu |
+| `install_shell_stack`      | `true`                                     | zsh + omz + tmux + fzf/zoxide/eza/delta/gh/btop/ncdu |
 
 ## Security notes
 
@@ -212,11 +208,11 @@ heavy demo traffic.
     │       ├── 10-base.sh        # apt baseline, sysctl, swap
     │       ├── 20-docker.sh      # Docker CE (distro-aware: debian + ubuntu)
     │       ├── 30-k3s.sh         # k3s single-node server
-    │       ├── 40-kube-tools.sh  # kubectl, helm, k9s, stern, cilium-cli, flux, argocd, yq
+    │       ├── 40-kube-tools.sh  # kubectl, helm, k9s, stern, yq
     │       ├── 50-langs.sh       # Go, Node/fnm, Python/uv, Rust
     │       ├── 60-agents.sh      # Claude Code + OpenCode via npm
     │       ├── 70-vscode-tunnel.sh # VSCode code CLI + MOTD
-    │       └── 80-shell.sh       # zsh + omz + p10k + tmux + modern CLIs
+    │       └── 80-shell.sh       # zsh + omz + tmux + modern CLIs
     ├── scripts/
     │   ├── read-laptop-user.sh   # emits local $USER as JSON
     │   └── read-linode-cli.sh    # reads ~/.config/linode-cli

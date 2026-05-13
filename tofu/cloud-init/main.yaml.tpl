@@ -16,8 +16,6 @@ packages:
   - sudo
   - git
   - jq
-  - tmux
-  - htop
   - unzip
 %{ for p in extra_packages ~}
   - ${p}
