@@ -8,8 +8,8 @@ Pure OpenTofu configuration that spins up a remote Ubuntu 24.04 LTS dev box
 on [Akamai Cloud](https://www.linode.com/) (formerly Linode).
 
 The default configuration is intentionally minimal: vanilla Ubuntu 24.04, a
-non-root user matching your local `$USER`, SSH key auth, a firewall, and a 2 GB
-swap file. All optional layers (Docker, k3s, language toolchains, AI agents,
+non-root user matching your local `$USER`, SSH key auth, a firewall, and zram
+swap. All optional layers (Docker, k3s, language toolchains, AI agents,
 shell stack, VSCode tunnel) are available as opt-in variables.
 
 ## What's installed by default
@@ -19,7 +19,7 @@ shell stack, VSCode tunnel) are available as opt-in variables.
 | OS             | Ubuntu 24.04 LTS Noble (vanilla, no snap bloat, EOL 2029-04)  |
 | Base utilities | git, curl, jq, unzip, ca-certificates, build-essential, wget  |
 | User           | Non-root user matching local `$USER`, sudo NOPASSWD, SSH key  |
-| Swap           | 2 GB swapfile                                                 |
+| Swap           | zram (lz4, 50% RAM)                                           |
 | Firewall       | SSH (22) only inbound; all outbound allowed                   |
 
 ## Optional layers (opt-in via variables)
