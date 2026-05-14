@@ -27,7 +27,7 @@ variable "instance_type" {
 }
 
 variable "instance_label" {
-  description = "Label for the Linode instance and base for derived names (firewall, hostname, tunnel). Defaults to <username>-dev-box when null."
+  description = "Label for the Linode instance and base for derived names (firewall, hostname). Defaults to <username>-dev-box when null."
   type        = string
   default     = null
   nullable    = true
@@ -39,7 +39,7 @@ variable "instance_label" {
 }
 
 variable "image" {
-  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/ubuntu24.04 (Ubuntu 24.04 LTS Noble). Supported: linode/ubuntu24.04 or any private/ image."
+  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/ubuntu24.04."
   type        = string
   default     = null
   nullable    = true
@@ -160,116 +160,12 @@ variable "allowed_ssh_cidrs_ipv6" {
   }
 }
 
-variable "expose_web" {
-  description = "Open inbound TCP 80 and 443 in the firewall. Off by default — VSCode tunnel and SSH cover most workflows."
-  type        = bool
-  default     = false
-}
-
-variable "expose_k3s_api" {
-  description = "Open inbound TCP 6443 (k3s API) in the firewall. Off by default — fetch kubeconfig via SSH instead."
-  type        = bool
-  default     = false
-}
-
-variable "allowed_k3s_api_cidrs_ipv4" {
-  description = "IPv4 CIDRs allowed to reach the k3s API (port 6443) when expose_k3s_api is true."
-  type        = list(string)
-  default     = []
-
-  validation {
-    condition     = alltrue([for cidr in var.allowed_k3s_api_cidrs_ipv4 : can(cidrhost(cidr, 0))])
-    error_message = "Each entry must be a valid IPv4 CIDR."
-  }
-}
-
-variable "allowed_k3s_api_cidrs_ipv6" {
-  description = "IPv6 CIDRs allowed to reach the k3s API (port 6443) when expose_k3s_api is true."
-  type        = list(string)
-  default     = []
-
-  validation {
-    condition     = alltrue([for cidr in var.allowed_k3s_api_cidrs_ipv6 : can(cidrhost(cidr, 0))])
-    error_message = "Each entry must be a valid IPv6 CIDR."
-  }
-}
-
 ###############################################################################
-# Cloud-init toggles
+# Cloud-init
 ###############################################################################
 
 variable "extra_packages" {
   description = "Additional apt packages to install on first boot."
   type        = list(string)
   default     = []
-}
-
-variable "install_docker" {
-  description = "Install Docker CE (with buildx and compose plugins)."
-  type        = bool
-  default     = false
-}
-
-variable "install_k3s" {
-  description = "Install single-node k3s server."
-  type        = bool
-  default     = false
-}
-
-variable "k3s_channel" {
-  description = "k3s release channel (e.g. stable, latest, v1.31)."
-  type        = string
-  default     = "stable"
-}
-
-variable "k3s_disable_components" {
-  description = "k3s components to disable. Traefik and ServiceLB are disabled by default so you can install your own ingress / LB."
-  type        = list(string)
-  default     = ["traefik", "servicelb"]
-}
-
-variable "install_languages" {
-  description = "Language toolchains to install for the non-root user."
-  type        = set(string)
-  default     = []
-
-  validation {
-    condition     = length(setsubtract(var.install_languages, ["go", "node", "python", "rust"])) == 0
-    error_message = "install_languages may only contain: go, node, python, rust."
-  }
-}
-
-variable "install_claude_code" {
-  description = "Install the Claude Code CLI (@anthropic-ai/claude-code) for the non-root user via npm."
-  type        = bool
-  default     = false
-}
-
-variable "install_opencode" {
-  description = "Install the OpenCode CLI (opencode-ai) for the non-root user via npm."
-  type        = bool
-  default     = false
-}
-
-variable "install_vscode_tunnel" {
-  description = "Install the VSCode `code` CLI on the box. Tunnel must be activated manually on first SSH (one-time GitHub device-code login)."
-  type        = bool
-  default     = false
-}
-
-variable "vscode_tunnel_name" {
-  description = "Tunnel name used for https://vscode.dev/tunnel/<name>. Defaults to the hostname when empty."
-  type        = string
-  default     = ""
-
-  validation {
-    condition     = var.vscode_tunnel_name == "" || can(regex("^[a-z0-9][a-z0-9-]{0,38}$", var.vscode_tunnel_name))
-    error_message = "Tunnel name must be 1-39 chars of lowercase letters, digits, or hyphens, starting with a letter or digit."
-  }
-}
-
-variable "install_shell_stack" {
-  description = "Install zsh + oh-my-zsh + tmux + modern CLI essentials (fzf, zoxide, eza, delta, gh) for the non-root user. Sets zsh as the default login shell."
-  type        = bool
-  default     = false
 }

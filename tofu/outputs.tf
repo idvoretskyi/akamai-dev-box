@@ -94,26 +94,6 @@ output "wait_ready_command" {
   value       = local.have_ip ? "until ssh -o StrictHostKeyChecking=accept-new ${local.username}@${local.ip} 'test -f /var/lib/devbox-init.done || test -f /var/lib/devbox-init.failed' 2>/dev/null; do echo waiting...; sleep 15; done; ssh ${local.username}@${local.ip} 'test -f /var/lib/devbox-init.done && echo ready || { echo FAILED - check /var/log/devbox-init.log; exit 1; }'" : null
 }
 
-output "kubeconfig_fetch_command" {
-  description = "Fetch kubeconfig locally and rewrite the server URL to the public IP."
-  value       = local.have_ip ? "scp ${local.username}@${local.ip}:~/.kube/config ./kubeconfig.devbox && sed -i.bak 's#https://127.0.0.1:6443#https://${local.ip}:6443#' ./kubeconfig.devbox && rm ./kubeconfig.devbox.bak" : null
-}
-
-output "k3s_status_command" {
-  description = "Show k3s nodes and pods over SSH."
-  value       = local.have_ip ? "ssh ${local.username}@${local.ip} 'sudo k3s kubectl get nodes,pods -A'" : null
-}
-
-output "vscode_tunnel_url" {
-  description = "VSCode tunnel URL once the tunnel service has been installed on the box."
-  value       = var.install_vscode_tunnel ? "https://vscode.dev/tunnel/${local.tunnel_name}" : null
-}
-
-output "vscode_tunnel_setup_command" {
-  description = "One-time interactive command to log in to GitHub and register the VSCode tunnel service."
-  value       = var.install_vscode_tunnel && local.have_ip ? "ssh -t ${local.username}@${local.ip} 'code tunnel user login --provider github && sudo loginctl enable-linger ${local.username} && code tunnel service install --name ${local.tunnel_name}'" : null
-}
-
 ###############################################################################
 # SSH config helpers
 ###############################################################################
