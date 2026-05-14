@@ -20,7 +20,7 @@ The box is intentionally vanilla: Ubuntu 24.04, a non-root user matching your lo
 ```sh
 export LINODE_TOKEN="your-token-here"
 cp tofu/terraform.tfvars.example tofu/terraform.tfvars
-$EDITOR tofu/terraform.tfvars   # set authorized_keys + root_pass
+$EDITOR tofu/terraform.tfvars                                # authorized_keys + root_pass
 
 tofu -chdir=tofu init
 tofu -chdir=tofu apply
