@@ -207,7 +207,7 @@ variable "extra_packages" {
 variable "install_docker" {
   description = "Install Docker CE (with buildx and compose plugins)."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "install_k3s" {

@@ -13,20 +13,20 @@ apt-get install -y --no-install-recommends \
   zram-tools
 
 # Sysctl tuning for container workloads.
-cat >/etc/sysctl.d/99-devbox.conf <<EOF
+cat >/etc/sysctl.d/99-devbox.conf <<SYSCTL
 fs.inotify.max_user_instances=8192
 fs.inotify.max_user_watches=524288
 vm.max_map_count=262144
 net.ipv4.ip_forward=1
 vm.swappiness=100
-EOF
+SYSCTL
 sysctl --system >/dev/null
 
 # zram: compressed in-memory swap (half of RAM, lz4).
-cat >/etc/default/zramswap <<EOF
+cat >/etc/default/zramswap <<ZRAM
 ALGO=lz4
 PERCENT=50
-EOF
+ZRAM
 systemctl enable --now zramswap
 
 echo "[10-base] done"
