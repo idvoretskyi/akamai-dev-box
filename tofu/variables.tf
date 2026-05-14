@@ -1,4 +1,16 @@
 ###############################################################################
+# Authentication
+###############################################################################
+
+variable "linode_token" {
+  description = "Akamai (Linode) API token. Optional — auto-detected from ~/.config/linode-cli (default-user's token), then falls back to the LINODE_TOKEN env var."
+  type        = string
+  default     = null
+  nullable    = true
+  sensitive   = true
+}
+
+###############################################################################
 # Instance basics
 ###############################################################################
 

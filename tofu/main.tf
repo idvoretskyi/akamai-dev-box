@@ -8,8 +8,8 @@ data "external" "linode_cli" {
   program = ["bash", "${path.module}/scripts/read-linode-cli.sh"]
 }
 
-data "external" "laptop_user" {
-  program = ["bash", "${path.module}/scripts/read-laptop-user.sh"]
+data "external" "local_user" {
+  program = ["bash", "${path.module}/scripts/read-local-user.sh"]
 }
 
 locals {
@@ -19,7 +19,7 @@ locals {
   instance_type = coalesce(var.instance_type, try(local.cli.type, ""), "g6-standard-4")
   image         = coalesce(var.image, try(local.cli.image, ""), "linode/ubuntu24.04")
 
-  username = coalesce(var.username, data.external.laptop_user.result.username)
+  username = coalesce(var.username, data.external.local_user.result.username)
   instance = coalesce(var.instance_label, "${local.username}-dev-box")
   hostname = var.hostname == "" ? local.instance : var.hostname
 
