@@ -19,66 +19,17 @@ locals {
   instance_type = coalesce(var.instance_type, try(local.cli.type, ""), "g6-standard-4")
   image         = coalesce(var.image, try(local.cli.image, ""), "linode/ubuntu24.04")
 
-  username    = coalesce(var.username, data.external.laptop_user.result.username)
-  instance    = coalesce(var.instance_label, "${local.username}-dev-box")
-  hostname    = var.hostname == "" ? local.instance : var.hostname
-  tunnel_name = var.vscode_tunnel_name == "" ? local.hostname : var.vscode_tunnel_name
-  # Git ref used to fetch scripts from GitHub at boot time.
-  # Uses the current HEAD commit SHA for a stable, pinned reference.
-  git_ref = "5156ba51660e0bbf265e9daace1b3ef055ff4ce3"
+  username = coalesce(var.username, data.external.laptop_user.result.username)
+  instance = coalesce(var.instance_label, "${local.username}-dev-box")
+  hostname = var.hostname == "" ? local.instance : var.hostname
 
   cloud_init = templatefile("${path.module}/cloud-init/main.yaml.tpl", {
-    username           = local.username
-    hostname           = local.hostname
-    timezone           = var.timezone
-    ssh_keys           = var.authorized_keys
-    extra_packages     = var.extra_packages
-    install_docker     = var.install_docker
-    install_k3s        = var.install_k3s
-    k3s_channel        = var.k3s_channel
-    k3s_disable        = var.k3s_disable_components
-    install_languages  = sort(tolist(var.install_languages))
-    install_claude     = var.install_claude_code
-    install_opencode   = var.install_opencode
-    install_vscode     = var.install_vscode_tunnel
-    vscode_tunnel_name = local.tunnel_name
-    install_shell      = var.install_shell_stack
-    git_ref            = local.git_ref
+    username       = local.username
+    hostname       = local.hostname
+    timezone       = var.timezone
+    ssh_keys       = var.authorized_keys
+    extra_packages = var.extra_packages
   })
-
-  # Firewall: SSH always; HTTP/HTTPS only if expose_web; 6443 only if expose_k3s_api.
-  inbound_rules = concat(
-    [{
-      label    = "allow-ssh"
-      protocol = "TCP"
-      ports    = "22"
-      ipv4     = var.allowed_ssh_cidrs_ipv4
-      ipv6     = var.allowed_ssh_cidrs_ipv6
-    }],
-    var.expose_web ? [
-      {
-        label    = "allow-http"
-        protocol = "TCP"
-        ports    = "80"
-        ipv4     = ["0.0.0.0/0"]
-        ipv6     = ["::/0"]
-      },
-      {
-        label    = "allow-https"
-        protocol = "TCP"
-        ports    = "443"
-        ipv4     = ["0.0.0.0/0"]
-        ipv6     = ["::/0"]
-      },
-    ] : [],
-    var.expose_k3s_api ? [{
-      label    = "allow-k3s-api"
-      protocol = "TCP"
-      ports    = "6443"
-      ipv4     = var.allowed_k3s_api_cidrs_ipv4
-      ipv6     = var.allowed_k3s_api_cidrs_ipv6
-    }] : [],
-  )
 }
 
 resource "linode_instance" "dev_box" {
@@ -118,16 +69,13 @@ resource "linode_firewall" "dev_box_fw" {
   inbound_policy  = "DROP"
   outbound_policy = "ACCEPT"
 
-  dynamic "inbound" {
-    for_each = local.inbound_rules
-    content {
-      label    = inbound.value.label
-      action   = "ACCEPT"
-      protocol = inbound.value.protocol
-      ports    = inbound.value.ports
-      ipv4     = inbound.value.ipv4
-      ipv6     = inbound.value.ipv6
-    }
+  inbound {
+    label    = "allow-ssh"
+    action   = "ACCEPT"
+    protocol = "TCP"
+    ports    = "22"
+    ipv4     = var.allowed_ssh_cidrs_ipv4
+    ipv6     = var.allowed_ssh_cidrs_ipv6
   }
 
   linodes = [linode_instance.dev_box.id]
