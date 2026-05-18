@@ -26,6 +26,7 @@ awk '
     if ($0 ~ /^[[:space:]]*region[[:space:]]*=/)  { sub(/^[^=]*=[[:space:]]*/, ""); region = $0 }
     else if ($0 ~ /^[[:space:]]*type[[:space:]]*=/)  { sub(/^[^=]*=[[:space:]]*/, ""); type   = $0 }
     else if ($0 ~ /^[[:space:]]*image[[:space:]]*=/) { sub(/^[^=]*=[[:space:]]*/, ""); image  = $0 }
+    else if ($0 ~ /^[[:space:]]*token[[:space:]]*=/) { sub(/^[^=]*=[[:space:]]*/, ""); token  = $0 }
   }
   END {
     printf "{"
@@ -33,6 +34,7 @@ awk '
     if (region != "") { printf "%s\"region\":\"%s\"", sep, region; sep = "," }
     if (type   != "") { printf "%s\"type\":\"%s\"",   sep, type;   sep = "," }
     if (image  != "") { printf "%s\"image\":\"%s\"",  sep, image;  sep = "," }
+    if (token  != "") { printf "%s\"token\":\"%s\"",  sep, token;  sep = "," }
     printf "}"
   }
 ' "$cfg"
