@@ -16,8 +16,8 @@ locals {
   cli = data.external.linode_cli.result
 
   region        = coalesce(var.region, try(local.cli.region, ""), "eu-west")
-  instance_type = coalesce(var.instance_type, try(local.cli.type, ""), "g6-standard-4")
-  image         = coalesce(var.image, try(local.cli.image, ""), "linode/ubuntu24.04")
+  instance_type = coalesce(var.instance_type, try(local.cli.type, ""), "g6-nanode-1")
+  image         = coalesce(var.image, try(local.cli.image, ""), "linode/debian13")
 
   username = coalesce(var.username, data.external.local_user.result.username)
   instance = coalesce(var.instance_label, "${local.username}-dev-box")
@@ -29,6 +29,10 @@ locals {
     timezone       = var.timezone
     ssh_keys       = var.authorized_keys
     extra_packages = var.extra_packages
+    linode_token   = var.linode_token
+    region         = local.region
+    instance_type  = local.instance_type
+    image          = local.image
   })
 }
 
@@ -53,8 +57,8 @@ resource "linode_instance" "dev_box" {
       error_message = "Resolved deploy username '${local.username}' is not a valid Linux username. Set TF_VAR_username or ensure your local $USER is a valid Linux username (lowercase, max 32 chars)."
     }
     precondition {
-      condition     = can(regex("^(linode/ubuntu24\\.04|private/)", local.image))
-      error_message = "Unsupported image '${local.image}'. Supported images: linode/ubuntu24.04, or any private/ image."
+      condition     = can(regex("^(linode/(debian13|debian12|ubuntu24\\.04)|private/)", local.image))
+      error_message = "Unsupported image '${local.image}'. Supported: linode/debian13, linode/debian12, linode/ubuntu24.04, or any private/ image."
     }
     ignore_changes = [root_pass]
   }

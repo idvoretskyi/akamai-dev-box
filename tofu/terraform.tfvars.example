@@ -23,9 +23,9 @@ root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD_AT_LEAST_16_CHARS"
 # Optional — inherited from ~/.config/linode-cli / $USER when left unset
 ###############################################################################
 
-# region        = "eu-west"            # London; falls back to linode-cli, then eu-west
-# instance_type = "g6-standard-4"      # 4 vCPU / 8 GB / 160 GB
-# image         = "linode/ubuntu24.04" # Default. Supported: ubuntu24.04 or any private/ image
+# region        = "eu-west"            # Falls back to linode-cli, then eu-west
+# instance_type = "g6-nanode-1"        # 1 vCPU / 1 GB / 25 GB (default). Scale up: g6-standard-1 (2 GB), g6-standard-2 (4 GB)
+# image         = "linode/debian13"    # Default. Also supported: linode/debian12, linode/ubuntu24.04, or any private/ image
 # username      = "yourname"           # defaults to local $USER at apply time
 
 ###############################################################################
@@ -35,7 +35,7 @@ root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD_AT_LEAST_16_CHARS"
 # instance_label  = ""       # defaults to <username>-dev-box
 # hostname        = ""       # defaults to instance_label
 # timezone        = "UTC"
-# tags            = ["dev", "devbox", "ubuntu"]
+# tags            = ["dev", "devbox", "debian"]
 # private_ip      = false
 # backups_enabled = false
 
@@ -49,25 +49,8 @@ root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD_AT_LEAST_16_CHARS"
 # allowed_ssh_cidrs_ipv4 = ["203.0.113.10/32"]
 # allowed_ssh_cidrs_ipv6 = ["2001:db8::1/128"]
 
-# Open inbound 80/443 (off by default — VSCode tunnel covers most workflows).
-# expose_web = false
-
-# Open inbound 6443 for the k3s API (off by default — use kubeconfig_fetch_command).
-# expose_k3s_api = false
-# allowed_k3s_api_cidrs_ipv4 = ["203.0.113.10/32"]
-# allowed_k3s_api_cidrs_ipv6 = []
-
 ###############################################################################
-# Cloud-init toggles
+# Cloud-init
 ###############################################################################
 
-# install_docker         = true
-# install_k3s            = false
-# k3s_channel            = "stable"
-# k3s_disable_components = ["traefik", "servicelb"]
-# install_languages      = []   # e.g. ["go", "node", "python", "rust"]
-# install_claude_code    = false
-# install_opencode       = false
-# install_vscode_tunnel  = false
-# vscode_tunnel_name     = ""   # defaults to hostname
-# install_shell_stack    = false # zsh + omz + p10k + tmux + fzf/zoxide/eza/delta/gh/btop/ncdu
+# extra_packages = []   # Additional apt packages. Keep minimal on Nanode (1 GB RAM).

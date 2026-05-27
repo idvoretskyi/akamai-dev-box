@@ -27,14 +27,14 @@ variable "region" {
 }
 
 variable "instance_type" {
-  description = "Akamai (Linode) instance plan. Optional — inherits from ~/.config/linode-cli, then falls back to g6-standard-4."
+  description = "Akamai (Linode) instance plan. Optional — inherits from ~/.config/linode-cli, then falls back to g6-nanode-1 (1 vCPU / 1 GB RAM / 25 GB SSD). Use g6-standard-1 or larger for heavier workloads."
   type        = string
   default     = null
   nullable    = true
 
   validation {
     condition     = var.instance_type == null || can(regex("^g[0-9]+-", var.instance_type))
-    error_message = "Instance type must be a valid Linode plan slug (e.g. g6-standard-4, g6-dedicated-8)."
+    error_message = "Instance type must be a valid Linode plan slug (e.g. g6-nanode-1, g6-standard-1, g6-dedicated-4)."
   }
 }
 
@@ -51,7 +51,7 @@ variable "instance_label" {
 }
 
 variable "image" {
-  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/ubuntu24.04."
+  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/debian13."
   type        = string
   default     = null
   nullable    = true
@@ -87,7 +87,7 @@ variable "timezone" {
 variable "tags" {
   description = "Tags to apply to the instance and firewall."
   type        = list(string)
-  default     = ["dev", "devbox", "ubuntu"]
+  default     = ["dev", "devbox", "debian"]
 }
 
 variable "private_ip" {
@@ -177,7 +177,7 @@ variable "allowed_ssh_cidrs_ipv6" {
 ###############################################################################
 
 variable "extra_packages" {
-  description = "Additional apt packages to install on first boot."
+  description = "Additional apt packages to install on first boot via cloud-init. Keep this list minimal on Nanode (1 GB RAM) — heavy toolchains (build-essential, language runtimes) may cause apt to OOM during install. Use swap headroom wisely."
   type        = list(string)
   default     = []
 }
