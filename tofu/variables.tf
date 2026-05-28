@@ -15,7 +15,7 @@ variable "linode_token" {
 ###############################################################################
 
 variable "region" {
-  description = "Akamai (Linode) region slug. Optional — inherits from ~/.config/linode-cli, then falls back to eu-west."
+  description = "Akamai (Linode) region slug. Optional — inherits from ~/.config/linode-cli, then falls back to gb-lon."
   type        = string
   default     = null
   nullable    = true
@@ -27,14 +27,14 @@ variable "region" {
 }
 
 variable "instance_type" {
-  description = "Akamai (Linode) instance plan. Optional — inherits from ~/.config/linode-cli, then falls back to g6-nanode-1 (1 vCPU / 1 GB RAM / 25 GB SSD). Use g6-standard-1 or larger for heavier workloads."
+  description = "Akamai (Linode) instance plan. Optional — inherits from ~/.config/linode-cli, then falls back to g6-standard-4 (4 vCPU / 8 GB RAM / 160 GB SSD)."
   type        = string
   default     = null
   nullable    = true
 
   validation {
     condition     = var.instance_type == null || can(regex("^g[0-9]+-", var.instance_type))
-    error_message = "Instance type must be a valid Linode plan slug (e.g. g6-nanode-1, g6-standard-1, g6-dedicated-4)."
+    error_message = "Instance type must be a valid Linode plan slug (e.g. g6-standard-4, g6-standard-2, g6-dedicated-4)."
   }
 }
 
@@ -51,14 +51,14 @@ variable "instance_label" {
 }
 
 variable "image" {
-  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/debian13."
+  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/ubuntu24.04. Only linode/ubuntu24.04 and private/ images are supported."
   type        = string
   default     = null
   nullable    = true
 
   validation {
-    condition     = var.image == null || can(regex("^(linode|private)/", var.image))
-    error_message = "Image must be a valid Akamai image slug starting with 'linode/' or 'private/'."
+    condition     = var.image == null || can(regex("^(linode/ubuntu24\\.04|private/)", var.image))
+    error_message = "Image must be linode/ubuntu24.04 or a private/ image slug."
   }
 }
 
@@ -87,7 +87,7 @@ variable "timezone" {
 variable "tags" {
   description = "Tags to apply to the instance and firewall."
   type        = list(string)
-  default     = ["dev", "devbox", "debian"]
+  default     = ["dev", "devbox", "ubuntu"]
 }
 
 variable "private_ip" {
@@ -177,7 +177,7 @@ variable "allowed_ssh_cidrs_ipv6" {
 ###############################################################################
 
 variable "extra_packages" {
-  description = "Additional apt packages to install on first boot via cloud-init. Keep this list minimal on Nanode (1 GB RAM) — heavy toolchains (build-essential, language runtimes) may cause apt to OOM during install. Use swap headroom wisely."
+  description = "Additional apt packages to install on first boot via cloud-init."
   type        = list(string)
   default     = []
 }
