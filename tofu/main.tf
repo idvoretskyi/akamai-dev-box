@@ -4,6 +4,14 @@
 # The deploy username is derived from the local $USER at plan/apply time.
 ###############################################################################
 
+provider "linode" {
+  # When var.linode_token is null (the default), the provider falls through to
+  # the LINODE_TOKEN environment variable, which is the recommended auth method.
+  # Set linode_token in terraform.tfvars only if you prefer var-based auth;
+  # the Linode provider v3.x treats an explicit null identically to omission.
+  token = var.linode_token
+}
+
 data "external" "linode_cli" {
   program = ["bash", "${path.module}/scripts/read-linode-cli.sh"]
 }
@@ -15,7 +23,7 @@ data "external" "local_user" {
 locals {
   cli = data.external.linode_cli.result
 
-  region        = coalesce(var.region, try(local.cli.region, ""), "eu-west")
+  region        = coalesce(var.region, try(local.cli.region, ""), "gb-lon")
   instance_type = coalesce(var.instance_type, try(local.cli.type, ""), "g6-standard-4")
   image         = coalesce(var.image, try(local.cli.image, ""), "linode/ubuntu24.04")
 
@@ -24,11 +32,16 @@ locals {
   hostname = var.hostname == "" ? local.instance : var.hostname
 
   cloud_init = templatefile("${path.module}/cloud-init/main.yaml.tpl", {
-    username       = local.username
-    hostname       = local.hostname
-    timezone       = var.timezone
-    ssh_keys       = var.authorized_keys
-    extra_packages = var.extra_packages
+    username        = local.username
+    hostname        = local.hostname
+    timezone        = var.timezone
+    ssh_keys        = var.authorized_keys
+    extra_packages  = var.extra_packages
+    seed_linode_cli = var.seed_linode_cli
+    linode_token    = var.linode_token
+    region          = local.region
+    instance_type   = local.instance_type
+    image           = local.image
   })
 }
 
@@ -53,8 +66,8 @@ resource "linode_instance" "dev_box" {
       error_message = "Resolved deploy username '${local.username}' is not a valid Linux username. Set TF_VAR_username or ensure your local $USER is a valid Linux username (lowercase, max 32 chars)."
     }
     precondition {
-      condition     = can(regex("^(linode/ubuntu24\\.04|private/)", local.image))
-      error_message = "Unsupported image '${local.image}'. Supported images: linode/ubuntu24.04, or any private/ image."
+      condition     = can(regex("^(linode/ubuntu[0-9]+\\.[0-9]+|private/)", local.image))
+      error_message = "Unsupported image '${local.image}'. Supported: any linode/ubuntu<NN>.<NN> slug (e.g. linode/ubuntu24.04) or private/ image."
     }
     ignore_changes = [root_pass]
   }

@@ -6,9 +6,6 @@
 .terraform/
 !tofu/.terraform.lock.hcl
 
-# Locally fetched kubeconfig (rewritten from k3s node)
-kubeconfig.devbox*
-
 # Terraform variable files (may contain secrets)
 terraform.tfvars
 *.auto.tfvars

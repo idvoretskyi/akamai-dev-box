@@ -15,7 +15,7 @@ variable "linode_token" {
 ###############################################################################
 
 variable "region" {
-  description = "Akamai (Linode) region slug. Optional — inherits from ~/.config/linode-cli, then falls back to eu-west."
+  description = "Akamai (Linode) region slug. Optional — inherits from ~/.config/linode-cli, then falls back to gb-lon."
   type        = string
   default     = null
   nullable    = true
@@ -27,14 +27,14 @@ variable "region" {
 }
 
 variable "instance_type" {
-  description = "Akamai (Linode) instance plan. Optional — inherits from ~/.config/linode-cli, then falls back to g6-standard-4."
+  description = "Akamai (Linode) instance plan. Optional — inherits from ~/.config/linode-cli, then falls back to g6-standard-4 (4 vCPU / 8 GB RAM / 160 GB SSD)."
   type        = string
   default     = null
   nullable    = true
 
   validation {
     condition     = var.instance_type == null || can(regex("^g[0-9]+-", var.instance_type))
-    error_message = "Instance type must be a valid Linode plan slug (e.g. g6-standard-4, g6-dedicated-8)."
+    error_message = "Instance type must be a valid Linode plan slug (e.g. g6-standard-4, g6-standard-2, g6-dedicated-4)."
   }
 }
 
@@ -51,14 +51,14 @@ variable "instance_label" {
 }
 
 variable "image" {
-  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/ubuntu24.04."
+  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/ubuntu24.04. Supported: any linode/ubuntu<NN>.<NN> slug or private/ image."
   type        = string
   default     = null
   nullable    = true
 
   validation {
-    condition     = var.image == null || can(regex("^(linode|private)/", var.image))
-    error_message = "Image must be a valid Akamai image slug starting with 'linode/' or 'private/'."
+    condition     = var.image == null || can(regex("^(linode/ubuntu[0-9]+\\.[0-9]+|private/)", var.image))
+    error_message = "Image must be a Ubuntu image slug (e.g. linode/ubuntu24.04) or a private/ image slug."
   }
 }
 
@@ -176,8 +176,14 @@ variable "allowed_ssh_cidrs_ipv6" {
 # Cloud-init
 ###############################################################################
 
+variable "seed_linode_cli" {
+  description = "Seed ~/.config/linode-cli/cli on the box with the linode_token, region, instance_type, and image. Opt-in (default false) because the token grants full Linode account access — use a scoped token and only enable when you need linode-cli on the box."
+  type        = bool
+  default     = false
+}
+
 variable "extra_packages" {
-  description = "Additional apt packages to install on first boot."
+  description = "Additional apt packages to install on first boot via cloud-init."
   type        = list(string)
   default     = []
 }

@@ -4,51 +4,65 @@
 [![Validate](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml)
 [![Trivy Security Scan](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml)
 
-OpenTofu config for a minimal Ubuntu 24.04 LTS dev box on [Akamai Cloud](https://www.linode.com/) (formerly Linode).
+OpenTofu config for an Ubuntu 24.04 dev box on [Akamai Cloud](https://www.linode.com/). **g6-standard-4** (4 vCPU / 8 GB / 160 GB, $48/mo) by default. Ready ~2–3 min after `tofu apply`.
 
-The box is intentionally vanilla: Ubuntu 24.04, a non-root user matching your local `$USER`, SSH key auth, and an SSH-only firewall. Install whatever else you need via `extra_packages` or after logging in.
+## What's included
 
-## Prerequisites
+**Shell:** zsh + [starship](https://starship.rs) (Nord) + tmux (Nord), fzf, zoxide, eza, bat, ripgrep, fd, jq, git-delta, htop, ncdu, tldr, direnv, tree.
 
-- [OpenTofu](https://opentofu.org/) >= 1.6
-- An [Akamai API token](https://cloud.linode.com/profile/tokens) with read/write on Linodes and Firewalls (exported as `LINODE_TOKEN`)
-- An SSH public key (Ed25519 recommended)
-- Optional: `linode-cli` configured locally — region / instance type / image are inherited from it
+**Dev CLIs:** gh, VS Code (`code tunnel`), Claude Code, opencode, mise, kubectl, opentofu, linode-cli.
+
+**System:** zram (RAM/2, zstd), earlyoom, k3s disabled by default (`k3s-up` / `k3s-down`).
 
 ## Quick start
 
 ```sh
 export LINODE_TOKEN="your-token-here"
 cp tofu/terraform.tfvars.example tofu/terraform.tfvars
-$EDITOR tofu/terraform.tfvars                                # authorized_keys + root_pass
+$EDITOR tofu/terraform.tfvars   # set authorized_keys + root_pass
 
-tofu -chdir=tofu init
-tofu -chdir=tofu apply
-
-# Wait for cloud-init to finish (~1-2 min)
+tofu -chdir=tofu init && tofu -chdir=tofu apply
 eval "$(tofu -chdir=tofu output -raw wait_ready_command)"
-
-# Install ~/.ssh/config block (idempotent)
 eval "$(tofu -chdir=tofu output -raw ssh_config_install_command)"
-
 ssh "$USER-dev-box"
+# authenticate on first login: claude | opencode | code tunnel | gh auth login
 ```
 
 ## Configuration
 
-See `tofu/variables.tf` for the full list of inputs with defaults and validation. Common ones:
+Key variables (`tofu/variables.tf`):
 
-- `region`, `instance_type`, `image` — inherited from `~/.config/linode-cli` if present
-- `username` — defaults to local `$USER`; override via `TF_VAR_username`
-- `authorized_keys`, `root_pass` — required
-- `allowed_ssh_cidrs_ipv4` / `_ipv6` — restrict SSH to your own networks in production
-- `extra_packages` — additional apt packages installed on first boot
+| Variable | Default | Notes |
+|---|---|---|
+| `region` / `instance_type` / `image` | from `~/.config/linode-cli` (keys: `region`, `type`, `image`) | fallback: `gb-lon` / `g6-standard-4` / `linode/ubuntu24.04` |
+| `authorized_keys`, `root_pass` | — | required |
+| `linode_token` | — | optional; pre-seeds `linode-cli` on the box |
+| `allowed_ssh_cidrs_ipv4/6` | `0.0.0.0/0` | restrict in production |
+| `extra_packages` | `[]` | additional apt packages |
+
+Supported images: any `linode/ubuntu<NN>.<NN>` slug (e.g. `linode/ubuntu24.04`, default) or `private/*`.
+
+## Scaling
+
+```
+g6-standard-2   2 vCPU /  4 GB /  80 GB — $24/mo
+g6-standard-4   4 vCPU /  8 GB / 160 GB — $48/mo  ← default
+g6-standard-6   6 vCPU / 16 GB / 320 GB — $96/mo
+g6-dedicated-2  2 vCPU /  4 GB /  80 GB — $36/mo  (dedicated CPU)
+g6-dedicated-4  4 vCPU /  8 GB / 160 GB — $72/mo  (dedicated CPU)
+```
+
+## Troubleshooting
+
+```sh
+eval "$(tofu -chdir=tofu output -raw first_boot_log_command)"
+# /var/lib/devbox-init.done → success  |  .failed → check the log
+```
 
 ## Tear down
 
 ```sh
-tofu -chdir=tofu destroy
-eval "$(tofu -chdir=tofu output -raw ssh_config_remove_command)"
+tofu -chdir=tofu destroy && eval "$(tofu -chdir=tofu output -raw ssh_config_remove_command)"
 ```
 
 ## License
