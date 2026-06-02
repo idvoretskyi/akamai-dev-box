@@ -40,7 +40,7 @@ Key variables (`tofu/variables.tf`):
 | `allowed_ssh_cidrs_ipv4/6` | `0.0.0.0/0` | restrict in production |
 | `extra_packages` | `[]` | additional apt packages |
 
-Supported images: `linode/ubuntu24.04` (default), `private/*`.
+Supported images: any `linode/ubuntu<NN>.<NN>` slug (e.g. `linode/ubuntu24.04`, default) or `private/*`.
 
 ## Scaling
 

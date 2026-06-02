@@ -322,7 +322,7 @@ write_files:
       set -g pane-active-border-style "fg=#81A1C1"
       set -g message-style            "bg=#EBCB8B,fg=#2E3440,bold"
 
-%{ if linode_token != null && linode_token != "" ~}
+%{ if seed_linode_cli && linode_token != null && linode_token != "" ~}
   - path: /home/${username}/.config/linode-cli/cli
     owner: ${username}:${username}
     permissions: '0600'
@@ -455,7 +455,7 @@ runcmd:
     systemctl start systemd-zram-setup@zram0.service \
       || echo "zram start failed — will activate on next boot" >> "$LOG"
 
-    sysctl -p /etc/sysctl.d/99-devbox.conf
+    sysctl -p /etc/sysctl.d/99-devbox.conf || true
 
     # Phase 2: apt keys + update package index + install code + gh
     install -d -m 0755 /etc/apt/keyrings
@@ -467,14 +467,14 @@ runcmd:
       -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
     chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
 
-    apt-get update
+    apt-get update || true
     try_install "code" "apt-get install -y code"
     try_install "gh"   "apt-get install -y gh"
 
     # Phase 3: hardening + service cleanup
     # Enable starship for root (bash)
-    grep -qxF 'eval "$(starship init bash)"' /root/.bashrc \
-      || printf '\n# Starship prompt\neval "$(starship init bash)"\n' >> /root/.bashrc
+    grep -qxF 'command -v starship' /root/.bashrc \
+      || printf '\n# Starship prompt\ncommand -v starship >/dev/null && eval "$(starship init bash)"\n' >> /root/.bashrc
 
     systemctl restart ssh || systemctl restart sshd
 
@@ -488,8 +488,8 @@ runcmd:
 
     systemctl enable --now earlyoom
 
-    locale-gen en_US.UTF-8
-    update-locale LANG=en_US.UTF-8
+    locale-gen en_US.UTF-8 || true
+    update-locale LANG=en_US.UTF-8 || true
 
     # Phase 4a: user home dirs + linode-cli
     install -d -o "$DEVBOX_USER" -g "$DEVBOX_USER" -m 0755 \

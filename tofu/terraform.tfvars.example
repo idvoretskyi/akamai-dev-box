@@ -56,4 +56,11 @@ root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD_AT_LEAST_16_CHARS"
 # Cloud-init
 ###############################################################################
 
-# extra_packages = []   # Additional apt packages.
+# The full dev stack (zsh/starship/tmux, gh, code, mise, claude, opencode,
+# kubectl, opentofu, k3s disabled by default) is always installed.
+# Use extra_packages to add more apt packages.
+# extra_packages = []
+
+# Seed ~/.config/linode-cli/cli on the box with the token (opt-in).
+# WARNING: grants full Linode account access from the box — use a scoped token.
+# seed_linode_cli = false

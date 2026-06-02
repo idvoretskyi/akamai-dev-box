@@ -51,14 +51,14 @@ variable "instance_label" {
 }
 
 variable "image" {
-  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/ubuntu24.04. Only linode/ubuntu24.04 and private/ images are supported."
+  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/ubuntu24.04. Supported: any linode/ubuntu<NN>.<NN> slug or private/ image."
   type        = string
   default     = null
   nullable    = true
 
   validation {
-    condition     = var.image == null || can(regex("^(linode/ubuntu24\\.04|private/)", var.image))
-    error_message = "Image must be linode/ubuntu24.04 or a private/ image slug."
+    condition     = var.image == null || can(regex("^(linode/ubuntu[0-9]+\\.[0-9]+|private/)", var.image))
+    error_message = "Image must be a Ubuntu image slug (e.g. linode/ubuntu24.04) or a private/ image slug."
   }
 }
 
@@ -175,6 +175,12 @@ variable "allowed_ssh_cidrs_ipv6" {
 ###############################################################################
 # Cloud-init
 ###############################################################################
+
+variable "seed_linode_cli" {
+  description = "Seed ~/.config/linode-cli/cli on the box with the linode_token, region, instance_type, and image. Opt-in (default false) because the token grants full Linode account access — use a scoped token and only enable when you need linode-cli on the box."
+  type        = bool
+  default     = false
+}
 
 variable "extra_packages" {
   description = "Additional apt packages to install on first boot via cloud-init."
