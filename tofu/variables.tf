@@ -51,14 +51,14 @@ variable "instance_label" {
 }
 
 variable "image" {
-  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/ubuntu24.04. Supported: any linode/ubuntu<NN>.<NN> slug or private/ image."
+  description = "Akamai image slug. Optional — inherits from ~/.config/linode-cli, then falls back to linode/ubuntu26.04. Supported: any linode/ubuntu<NN>.<NN> slug or private/ image."
   type        = string
   default     = null
   nullable    = true
 
   validation {
     condition     = var.image == null || can(regex("^(linode/ubuntu[0-9]+\\.[0-9]+|private/)", var.image))
-    error_message = "Image must be a Ubuntu image slug (e.g. linode/ubuntu24.04) or a private/ image slug."
+    error_message = "Image must be a Ubuntu image slug (e.g. linode/ubuntu26.04) or a private/ image slug."
   }
 }
 
@@ -186,4 +186,33 @@ variable "extra_packages" {
   description = "Additional apt packages to install on first boot via cloud-init."
   type        = list(string)
   default     = []
+}
+
+###############################################################################
+# Dotfiles / git identity
+###############################################################################
+
+variable "dotfiles_repo" {
+  description = "Git URL of a dotfiles repo cloned to ~/.dotfiles on first boot; its install.sh is run with --unattended --no-packages. Must be clonable without credentials (public https) unless you handle auth yourself. Set to \"\" to skip."
+  type        = string
+  default     = "https://github.com/idvoretskyi/dotfiles.git"
+
+  validation {
+    condition     = var.dotfiles_repo == "" || can(regex("^(https://|ssh://|git@)", var.dotfiles_repo))
+    error_message = "dotfiles_repo must be empty or an https://, ssh://, or git@ Git URL."
+  }
+}
+
+variable "git_user_name" {
+  description = "Git identity (user.name) written to ~/.gitconfig.local on the box. Optional — when unset, the file is created with commented placeholders."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "git_user_email" {
+  description = "Git identity (user.email) written to ~/.gitconfig.local on the box. Optional — when unset, the file is created with commented placeholders."
+  type        = string
+  default     = null
+  nullable    = true
 }
