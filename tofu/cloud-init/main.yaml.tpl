@@ -173,6 +173,9 @@ write_files:
       alias k3s-down='sudo systemctl stop k3s && echo "k3s stopped"'
       alias k='kubectl'
 
+      # opencode (installer puts binary in ~/.opencode/bin, not ~/.local/bin)
+      [ -d "$HOME/.opencode/bin" ] && export PATH="$HOME/.opencode/bin:$PATH"
+
       # AI: run once after SSH: claude / opencode / code tunnel / gh auth login
 
   - path: /home/${username}/.gitconfig.local
@@ -223,6 +226,51 @@ write_files:
       no-headers = False
       suppress-warnings = False
 %{ endif ~}
+
+  # tmux: restore default prefix C-b (dotfiles set C-a via ~/.tmux.conf)
+  - path: /home/${username}/.tmux.conf.local
+    owner: ${username}:${username}
+    permissions: '0644'
+    defer: true
+    content: |
+      # Devbox override: use default tmux prefix C-b, not C-a from dotfiles.
+      set -g prefix C-b
+      unbind C-a
+      bind C-b send-prefix
+
+  # Root shell: red robbyrussell-style prompt in bash.
+  # Mirrors the regular-user omz robbyrussell look but with bold red for the
+  # directory segment so root is visually distinct.
+  - path: /root/.bashrc.devbox
+    permissions: '0644'
+    content: |
+      # Red robbyrussell-style prompt for root bash.
+      # ➜  <dir>  [git:(branch) [✗]]
+      # Arrow is bold green; turns bold red on non-zero exit.
+      # Directory (tilde-shortened) is bold red.
+      # Git segments match omz robbyrussell colours.
+
+      _devbox_git_prompt() {
+        local branch dirty
+        branch="$(git -C . rev-parse --abbrev-ref HEAD 2>/dev/null)" || return
+        dirty="$(git -C . status --porcelain 2>/dev/null)"
+        printf ' \001\033[34m\002git:(\001\033[31m\002%s\001\033[34m\002)\001\033[0m\002' "$branch"
+        [ -n "$dirty" ] && printf ' \001\033[33m\002✗\001\033[0m\002'
+      }
+
+      _devbox_root_ps1() {
+        local exit_code=$?
+        local arrow
+        if [ $exit_code -eq 0 ]; then
+          arrow='\001\033[1;32m\002➜\001\033[0m\002'
+        else
+          arrow='\001\033[1;31m\002➜\001\033[0m\002'
+        fi
+        local dir='\001\033[1;31m\002\W\001\033[0m\002'
+        PS1="$${arrow}  $${dir}$$(_devbox_git_prompt) "
+      }
+
+      PROMPT_COMMAND='_devbox_root_ps1'
 
 runcmd:
   - |
@@ -288,6 +336,10 @@ runcmd:
       || echo "docker group add skipped (docker not installed?)" >> "$LOG"
 
     # Phase 3: hardening + service cleanup
+    # Root prompt: source the red robbyrussell snippet from bashrc
+    grep -qxF '[ -f ~/.bashrc.devbox ]' /root/.bashrc \
+      || printf '\n# Devbox red prompt\n[ -f ~/.bashrc.devbox ] && . ~/.bashrc.devbox\n' >> /root/.bashrc
+
     systemctl restart ssh || systemctl restart sshd
 
     systemctl disable --now rsyslog 2>/dev/null || true
