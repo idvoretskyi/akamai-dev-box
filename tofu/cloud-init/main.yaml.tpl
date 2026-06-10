@@ -134,19 +134,16 @@ write_files:
       datasource_list: [ConfigDrive, NoCloud, None]
 
   # ---- User home-dir — defer: true -----------------------------------------
-  # Base shell/tmux/vim/git config comes from the dotfiles repo (cloned and
-  # symlinked by runcmd phase 4d). Only machine-specific overrides are written
-  # here, using the *.local extension points the dotfiles already source.
+  # Base config comes from dotfiles_repo (phase 4d); only *.local overrides here.
 
   - path: /home/${username}/.zshrc.local
     owner: ${username}:${username}
     permissions: '0644'
     defer: true
     content: |
-      # Devbox overrides — sourced last by ~/.zshrc (dotfiles repo).
-      # Owned by cloud-init; machine-specific, not tracked in the dotfiles repo.
+      # Devbox overrides — sourced last by ~/.zshrc (dotfiles).
 
-      # Completions installed by cloud-init (linode-cli, gh)
+      # Completions installed by cloud-init
       fpath+=(~/.zfunc)
       autoload -Uz compinit && compinit -C
 
@@ -154,7 +151,6 @@ write_files:
       command -v direnv &>/dev/null && eval "$(direnv hook zsh)"
       command -v mise   &>/dev/null && eval "$(mise activate zsh)"
 
-      # eza over ls when present
       if command -v eza &>/dev/null; then
         alias ls='eza --color=auto'
         alias ll='eza -lah --git'
@@ -173,17 +169,15 @@ write_files:
       alias k3s-down='sudo systemctl stop k3s && echo "k3s stopped"'
       alias k='kubectl'
 
-      # opencode (installer puts binary in ~/.opencode/bin, not ~/.local/bin)
+      # opencode installs to ~/.opencode/bin
       [ -d "$HOME/.opencode/bin" ] && export PATH="$HOME/.opencode/bin:$PATH"
-
-      # AI: run once after SSH: claude / opencode / code tunnel / gh auth login
 
   - path: /home/${username}/.gitconfig.local
     owner: ${username}:${username}
     permissions: '0644'
     defer: true
     content: |
-      # Machine-local git identity & signing (included by the dotfiles gitconfig).
+      # Machine-local git identity & signing.
 %{ if git_user_name != null || git_user_email != null ~}
       [user]
 %{ if git_user_name != null ~}
@@ -198,11 +192,9 @@ write_files:
       #     email = you@example.com
 %{ endif ~}
 
-      # The dotfiles enable SSH-format commit signing, but a fresh box has no
-      # signing key — disabled here so `git commit` works out of the box.
-      # To sign with your forwarded SSH agent instead:
-      #   git config --file ~/.gitconfig.local user.signingkey "key::$(head -1 ~/.ssh/authorized_keys)"
-      #   git config --file ~/.gitconfig.local commit.gpgsign true
+      # SSH signing is disabled — no key on a fresh box.
+      # To enable: git config --file ~/.gitconfig.local commit.gpgsign true
+      #            git config --file ~/.gitconfig.local user.signingkey "key::$(head -1 ~/.ssh/authorized_keys)"
       [commit]
           gpgsign = false
       [tag]
@@ -227,28 +219,21 @@ write_files:
       suppress-warnings = False
 %{ endif ~}
 
-  # tmux: restore default prefix C-b (dotfiles set C-a via ~/.tmux.conf)
   - path: /home/${username}/.tmux.conf.local
     owner: ${username}:${username}
     permissions: '0644'
     defer: true
     content: |
-      # Devbox override: use default tmux prefix C-b, not C-a from dotfiles.
+      # Devbox override: default prefix C-b.
       set -g prefix C-b
       unbind C-a
       bind C-b send-prefix
 
-  # Root shell: red robbyrussell-style prompt in bash.
-  # Mirrors the regular-user omz robbyrussell look but with bold red for the
-  # directory segment so root is visually distinct.
+  # Root shell: red robbyrussell-style bash prompt.
   - path: /root/.bashrc.devbox
     permissions: '0644'
     content: |
-      # Red robbyrussell-style prompt for root bash.
-      # ➜  <dir>  [git:(branch) [✗]]
-      # Arrow is bold green; turns bold red on non-zero exit.
-      # Directory (tilde-shortened) is bold red.
-      # Git segments match omz robbyrussell colours.
+      # Red robbyrussell-style prompt — dir bold red, omz git colours.
 
       _devbox_git_prompt() {
         local branch dirty
@@ -278,10 +263,9 @@ runcmd:
     trap 'echo "cloud-init FAILED at line $LINENO" >> /var/log/devbox-init.log; touch /var/lib/devbox-init.failed' ERR
 
     LOG=/var/log/devbox-init.log
-    # Template variable captured once so it's a plain shell variable inside heredoc
     DEVBOX_USER='${username}'
 
-    # Fail-open helper: label + command string, eval'd in a subshell.
+    # Fail-open helper: label + command, eval'd in a subshell.
     try_install() {
       local label="$1" cmd="$2"
       ( eval "$cmd" >> "$LOG" 2>&1 ) \
@@ -312,8 +296,7 @@ runcmd:
       -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
     chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
 
-    # Docker CE — codename-aware deb822 source (written here, not write_files,
-    # so the suite always matches the running release)
+    # Docker CE — codename-aware deb822 source
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
       | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
     codename="$(. /etc/os-release && echo "$VERSION_CODENAME")"
@@ -331,12 +314,11 @@ runcmd:
     try_install "gh"     "apt-get install -y gh"
     try_install "docker" "apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
 
-    # docker group: lets the user run docker + VS Code devcontainers over SSH
+    # non-root docker access
     usermod -aG docker "$DEVBOX_USER" 2>/dev/null \
       || echo "docker group add skipped (docker not installed?)" >> "$LOG"
 
     # Phase 3: hardening + service cleanup
-    # Root prompt: source the red robbyrussell snippet from bashrc
     grep -qxF '[ -f ~/.bashrc.devbox ]' /root/.bashrc \
       || printf '\n# Devbox red prompt\n[ -f ~/.bashrc.devbox ] && . ~/.bashrc.devbox\n' >> /root/.bashrc
 
@@ -409,10 +391,8 @@ runcmd:
     wait  # join all phase-4c background jobs
 
 %{ if dotfiles_repo != "" ~}
-    # Phase 4d: dotfiles — base zsh/oh-my-zsh/tmux/vim/git config.
-    # install.sh symlinks configs + installs oh-my-zsh; --no-packages because
-    # cloud-init already installed a superset of its apt list. SHELL is set so
-    # its chsh step self-skips (the user shell is already zsh via cloud-init).
+    # Phase 4d: dotfiles — installs oh-my-zsh + symlinks; --no-packages skips
+    # apt (cloud-init already covers it); SHELL preset avoids a chsh prompt.
     try_install_user "dotfiles" \
       'rm -rf ~/.dotfiles &&
        git clone --depth 1 ${dotfiles_repo} ~/.dotfiles &&
