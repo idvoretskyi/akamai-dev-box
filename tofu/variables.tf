@@ -58,7 +58,7 @@ variable "image" {
 
   validation {
     condition     = var.image == null || can(regex("^(linode/ubuntu[0-9]+\\.[0-9]+|private/)", var.image))
-    error_message = "Image must be a Ubuntu image slug (e.g. linode/ubuntu26.04) or a private/ image slug."
+    error_message = "Image must be an Ubuntu image slug (e.g. linode/ubuntu26.04) or a private/ image slug."
   }
 }
 
@@ -198,8 +198,8 @@ variable "dotfiles_repo" {
   default     = "https://github.com/idvoretskyi/dotfiles.git"
 
   validation {
-    condition     = var.dotfiles_repo == "" || can(regex("^(https://|ssh://|git@)", var.dotfiles_repo))
-    error_message = "dotfiles_repo must be empty or an https://, ssh://, or git@ Git URL."
+    condition     = var.dotfiles_repo == "" || can(regex("^(https://|ssh://|git@)[A-Za-z0-9._~:/@-]+$", var.dotfiles_repo))
+    error_message = "dotfiles_repo must be empty or a well-formed Git URL using https://, ssh://, or git@ with no shell-unsafe characters (no spaces, quotes, $, or backticks)."
   }
 }
 

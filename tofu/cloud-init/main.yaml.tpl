@@ -299,6 +299,7 @@ runcmd:
     # Docker CE — codename-aware deb822 source
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
       | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    chmod a+r /etc/apt/keyrings/docker.gpg
     codename="$(. /etc/os-release && echo "$VERSION_CODENAME")"
     cat > /etc/apt/sources.list.d/docker.sources <<DOCKER
     Types: deb
@@ -395,7 +396,7 @@ runcmd:
     # apt (cloud-init already covers it); SHELL preset avoids a chsh prompt.
     try_install_user "dotfiles" \
       'rm -rf ~/.dotfiles &&
-       git clone --depth 1 ${dotfiles_repo} ~/.dotfiles &&
+       git clone --depth 1 "${dotfiles_repo}" ~/.dotfiles &&
        cd ~/.dotfiles &&
        env SHELL="$(command -v zsh)" ./install.sh --unattended --no-packages'
 %{ endif ~}
