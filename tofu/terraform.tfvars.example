@@ -3,7 +3,7 @@
 #
 # region, instance_type, image, and username are all sourced automatically:
 #   - region / instance_type / image  from ~/.config/linode-cli (keys: region, type, image)
-#                                     then built-in fallbacks: gb-lon / g6-standard-4 / linode/ubuntu24.04
+#                                     then built-in fallbacks: gb-lon / g6-standard-4 / linode/ubuntu26.04
 #   - username                        from your local $USER at apply time
 # Only authorized_keys and root_pass are required here.
 #
@@ -28,7 +28,7 @@ root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD_AT_LEAST_16_CHARS"
 
 # region        = "gb-lon"             # Falls back to linode-cli, then gb-lon
 # instance_type = "g6-standard-4"      # 4 vCPU / 8 GB / 160 GB (default). Scale down: g6-standard-2 (4 GB)
-# image         = "linode/ubuntu24.04" # Default. Also supported: any private/ image
+# image         = "linode/ubuntu26.04" # Default. Also supported: any private/ image
 # username      = "yourname"           # defaults to local $USER at apply time
 
 ###############################################################################
@@ -56,10 +56,18 @@ root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD_AT_LEAST_16_CHARS"
 # Cloud-init
 ###############################################################################
 
-# The full dev stack (zsh/starship/tmux, gh, code, mise, claude, opencode,
-# kubectl, opentofu, k3s disabled by default) is always installed.
-# Use extra_packages to add more apt packages.
+# The full dev stack (zsh/oh-my-zsh/tmux/vim/git via dotfiles_repo, gh, code,
+# mise, claude, opencode, kubectl, opentofu, docker, k3s disabled by default)
+# is always installed. Use extra_packages to add more apt packages.
 # extra_packages = []
+
+# Dotfiles repo cloned to ~/.dotfiles and installed via
+# `./install.sh --unattended --no-packages`. Set to "" to skip.
+# dotfiles_repo = "https://github.com/idvoretskyi/dotfiles.git"
+
+# Git identity written to ~/.gitconfig.local on the box (optional).
+# git_user_name  = "Your Name"
+# git_user_email = "you@example.com"
 
 # Seed ~/.config/linode-cli/cli on the box with the token (opt-in).
 # WARNING: grants full Linode account access from the box — use a scoped token.

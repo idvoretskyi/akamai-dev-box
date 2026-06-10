@@ -15,8 +15,11 @@ packages:
   - gnupg
   - sudo
   - git
+  - git-lfs
   - zsh
   - tmux
+  - vim
+  - wget
   - unzip
   - ncdu
   - rsync
@@ -35,7 +38,7 @@ packages:
   - jq
   - git-delta
   - neovim
-  - tldr
+  - tealdeer
   - direnv
   - tree
   - systemd-zram-generator
@@ -131,48 +134,29 @@ write_files:
       datasource_list: [ConfigDrive, NoCloud, None]
 
   # ---- User home-dir — defer: true -----------------------------------------
+  # Base config comes from dotfiles_repo (phase 4d); only *.local overrides here.
 
-  - path: /home/${username}/.zshrc
+  - path: /home/${username}/.zshrc.local
     owner: ${username}:${username}
     permissions: '0644'
     defer: true
     content: |
-      export PATH="$HOME/.local/bin:$PATH"
+      # Devbox overrides — sourced last by ~/.zshrc (dotfiles).
 
-      # History
-      HISTFILE=~/.zsh_history
-      HISTSIZE=10000
-      SAVEHIST=10000
-      setopt HIST_EXPIRE_DUPS_FIRST HIST_IGNORE_DUPS HIST_REDUCE_BLANKS SHARE_HISTORY
-
-      # Completion
-      fpath+=~/.zfunc
+      # Completions installed by cloud-init
+      fpath+=(~/.zfunc)
       autoload -Uz compinit && compinit -C
-
-      # fzf key-bindings (Ctrl-R history, Ctrl-T files)
-      [ -f /usr/share/doc/fzf/examples/key-bindings.zsh ] \
-        && source /usr/share/doc/fzf/examples/key-bindings.zsh
 
       command -v zoxide &>/dev/null && eval "$(zoxide init zsh --cmd z)"
       command -v direnv &>/dev/null && eval "$(direnv hook zsh)"
       command -v mise   &>/dev/null && eval "$(mise activate zsh)"
 
-      # Starship prompt (Nord-themed, matches tmux bar)
-      command -v starship &>/dev/null && eval "$(starship init zsh)"
-
-      # Debian/Ubuntu package names differ from upstream — alias to expected names
-      alias bat='batcat'
-      alias fd='fdfind'
-
-      alias ls='eza --color=auto'
-      alias ll='eza -lah --git'
-      alias la='eza -lah'
+      if command -v eza &>/dev/null; then
+        alias ls='eza --color=auto'
+        alias ll='eza -lah --git'
+        alias la='eza -lah'
+      fi
       alias open='xdg-open'
-      alias gs='git status'
-      alias gp='git pull'
-      alias gc='git commit'
-      alias ..='cd ..'
-      alias ...='cd ../..'
 
       # Auto-attach tmux on interactive SSH login
       if [[ -z "$TMUX" && -n "$SSH_TTY" ]]; then
@@ -185,142 +169,36 @@ write_files:
       alias k3s-down='sudo systemctl stop k3s && echo "k3s stopped"'
       alias k='kubectl'
 
-      # AI: run once after SSH: claude / opencode / code tunnel / gh auth login
+      # opencode installs to ~/.opencode/bin
+      [ -d "$HOME/.opencode/bin" ] && export PATH="$HOME/.opencode/bin:$PATH"
 
-  - path: /home/${username}/.config/starship.toml
+  - path: /home/${username}/.gitconfig.local
     owner: ${username}:${username}
     permissions: '0644'
     defer: true
     content: |
-      "$schema" = 'https://starship.rs/config-schema.json'
-      add_newline = false
-      palette = 'nord'
+      # Machine-local git identity & signing.
+%{ if git_user_name != null || git_user_email != null ~}
+      [user]
+%{ if git_user_name != null ~}
+          name = ${git_user_name}
+%{ endif ~}
+%{ if git_user_email != null ~}
+          email = ${git_user_email}
+%{ endif ~}
+%{ else ~}
+      # [user]
+      #     name  = Your Name
+      #     email = you@example.com
+%{ endif ~}
 
-      format = """
-      [](fg:nord10)\
-      $username\
-      [](fg:nord10 bg:nord9)\
-      $directory\
-      [](fg:nord9 bg:nord8)\
-      $git_branch\
-      $git_status\
-      [](fg:nord8 bg:nord1)\
-      $cmd_duration\
-      $status\
-      [](fg:nord1)\
-       $character"""
-
-      [palettes.nord]
-      nord0  = '#2E3440'
-      nord1  = '#3B4252'
-      nord2  = '#434C5E'
-      nord3  = '#4C566A'
-      nord4  = '#D8DEE9'
-      nord6  = '#ECEFF4'
-      nord7  = '#8FBCBB'
-      nord8  = '#88C0D0'
-      nord9  = '#81A1C1'
-      nord10 = '#5E81AC'
-      nord11 = '#BF616A'
-      nord13 = '#EBCB8B'
-      nord14 = '#A3BE8C'
-      nord15 = '#B48EAD'
-
-      [username]
-      show_always = true
-      style_user  = 'bg:nord10 fg:nord6 bold'
-      style_root  = 'bg:nord11 fg:nord6 bold'
-      format      = '[ $user ]($style)'
-
-      [directory]
-      style            = 'bg:nord9 fg:nord0 bold'
-      format           = '[ $path ]($style)'
-      truncation_length = 3
-      truncate_to_repo  = true
-
-      [git_branch]
-      symbol = ''
-      style  = 'bg:nord8 fg:nord0'
-      format = '[ $symbol $branch ]($style)'
-
-      [git_status]
-      style  = 'bg:nord8 fg:nord0'
-      format = '([$all_status$ahead_behind ]($style))'
-
-      [cmd_duration]
-      min_time = 2000
-      style    = 'bg:nord1 fg:nord13'
-      format   = '[ ⏱ $duration ]($style)'
-
-      [status]
-      disabled = false
-      style    = 'bg:nord1 fg:nord11 bold'
-      format   = '[ $symbol$status ]($style)'
-      symbol   = '✗ '
-
-      [character]
-      success_symbol = '[❯](bold fg:nord14)'
-      error_symbol   = '[❯](bold fg:nord11)'
-
-      # Disable noisy modules not useful on a remote dev box
-      [package]
-      disabled = true
-      [aws]
-      disabled = true
-      [gcloud]
-      disabled = true
-      [azure]
-      disabled = true
-      [battery]
-      disabled = true
-
-  - path: /home/${username}/.tmux.conf
-    owner: ${username}:${username}
-    permissions: '0644'
-    defer: true
-    content: |
-      set -g default-terminal "tmux-256color"
-      set -ga terminal-overrides ",*256col*:Tc"
-
-      set -g mouse on
-      set -g base-index 1
-      setw -g pane-base-index 1
-      set -g renumber-windows on
-      set -g history-limit 5000
-      set -sg escape-time 10
-      set -g focus-events on
-
-      setw -g mode-keys vi
-      bind-key -T copy-mode-vi v send -X begin-selection
-      bind-key -T copy-mode-vi y send -X copy-selection-and-cancel
-
-      bind r source-file ~/.tmux.conf \; display "Config reloaded"
-      bind | split-window -h -c "#{pane_current_path}"
-      bind - split-window -v -c "#{pane_current_path}"
-      bind h select-pane -L
-      bind j select-pane -D
-      bind k select-pane -U
-      bind l select-pane -R
-
-      # Nord powerline status bar
-      set -g status on
-      set -g status-interval 5
-      set -g status-position bottom
-      set -g status-justify left
-      set -g status-style "bg=#3B4252,fg=#D8DEE9"
-
-      set -g status-left-length 40
-      set -g status-left "#[bg=#5E81AC,fg=#ECEFF4,bold] #S #[bg=#3B4252,fg=#5E81AC,nobold]"
-
-      set -g status-right-length 80
-      set -g status-right "#[fg=#4C566A,bg=#3B4252]#[fg=#D8DEE9,bg=#4C566A] #(whoami)@#H #[fg=#5E81AC,bg=#4C566A]#[fg=#ECEFF4,bg=#5E81AC,bold] %H:%M  %d %b "
-
-      setw -g window-status-format         "#[fg=#81A1C1,bg=#3B4252] #I #W "
-      setw -g window-status-current-format "#[fg=#3B4252,bg=#81A1C1]#[fg=#2E3440,bg=#81A1C1,bold] #I #W #[fg=#81A1C1,bg=#3B4252]"
-
-      set -g pane-border-style        "fg=#4C566A"
-      set -g pane-active-border-style "fg=#81A1C1"
-      set -g message-style            "bg=#EBCB8B,fg=#2E3440,bold"
+      # SSH signing is disabled — no key on a fresh box.
+      # To enable: git config --file ~/.gitconfig.local commit.gpgsign true
+      #            git config --file ~/.gitconfig.local user.signingkey "key::$(head -1 ~/.ssh/authorized_keys)"
+      [commit]
+          gpgsign = false
+      [tag]
+          gpgSign = false
 
 %{ if seed_linode_cli && linode_token != null && linode_token != "" ~}
   - path: /home/${username}/.config/linode-cli/cli
@@ -341,91 +219,43 @@ write_files:
       suppress-warnings = False
 %{ endif ~}
 
-  # Root shell — red powerline bar (same structure as user, nord11 instead of nord10)
-  - path: /root/.config/starship.toml
+  - path: /home/${username}/.tmux.conf.local
+    owner: ${username}:${username}
+    permissions: '0644'
+    defer: true
+    content: |
+      # Devbox override: default prefix C-b.
+      set -g prefix C-b
+      unbind C-a
+      bind C-b send-prefix
+
+  # Root shell: red robbyrussell-style bash prompt.
+  - path: /root/.bashrc.devbox
     permissions: '0644'
     content: |
-      "$schema" = 'https://starship.rs/config-schema.json'
-      add_newline = false
-      palette = 'nord'
+      # Red robbyrussell-style prompt — dir bold red, omz git colours.
 
-      format = """
-      [](fg:nord11)\
-      $username\
-      [](fg:nord11 bg:nord9)\
-      $directory\
-      [](fg:nord9 bg:nord8)\
-      $git_branch\
-      $git_status\
-      [](fg:nord8 bg:nord1)\
-      $cmd_duration\
-      $status\
-      [](fg:nord1)\
-       $character"""
+      _devbox_git_prompt() {
+        local branch dirty
+        branch="$(git -C . rev-parse --abbrev-ref HEAD 2>/dev/null)" || return
+        dirty="$(git -C . status --porcelain 2>/dev/null)"
+        printf ' \001\033[34m\002git:(\001\033[31m\002%s\001\033[34m\002)\001\033[0m\002' "$branch"
+        [ -n "$dirty" ] && printf ' \001\033[33m\002✗\001\033[0m\002'
+      }
 
-      [palettes.nord]
-      nord0  = '#2E3440'
-      nord1  = '#3B4252'
-      nord2  = '#434C5E'
-      nord3  = '#4C566A'
-      nord4  = '#D8DEE9'
-      nord6  = '#ECEFF4'
-      nord7  = '#8FBCBB'
-      nord8  = '#88C0D0'
-      nord9  = '#81A1C1'
-      nord10 = '#5E81AC'
-      nord11 = '#BF616A'
-      nord13 = '#EBCB8B'
-      nord14 = '#A3BE8C'
-      nord15 = '#B48EAD'
+      _devbox_root_ps1() {
+        local exit_code=$?
+        local arrow
+        if [ $exit_code -eq 0 ]; then
+          arrow='\001\033[1;32m\002➜\001\033[0m\002'
+        else
+          arrow='\001\033[1;31m\002➜\001\033[0m\002'
+        fi
+        local dir='\001\033[1;31m\002\W\001\033[0m\002'
+        PS1="$${arrow}  $${dir}$$(_devbox_git_prompt) "
+      }
 
-      [username]
-      show_always = true
-      style_user  = 'bg:nord11 fg:nord6 bold'
-      style_root  = 'bg:nord11 fg:nord6 bold'
-      format      = '[ $user ]($style)'
-
-      [directory]
-      style            = 'bg:nord9 fg:nord0 bold'
-      format           = '[ $path ]($style)'
-      truncation_length = 3
-      truncate_to_repo  = true
-
-      [git_branch]
-      symbol = ''
-      style  = 'bg:nord8 fg:nord0'
-      format = '[ $symbol $branch ]($style)'
-
-      [git_status]
-      style  = 'bg:nord8 fg:nord0'
-      format = '([$all_status$ahead_behind ]($style))'
-
-      [cmd_duration]
-      min_time = 2000
-      style    = 'bg:nord1 fg:nord13'
-      format   = '[ ⏱ $duration ]($style)'
-
-      [status]
-      disabled = false
-      style    = 'bg:nord1 fg:nord11 bold'
-      format   = '[ $symbol$status ]($style)'
-      symbol   = '✗ '
-
-      [character]
-      success_symbol = '[❯](bold fg:nord14)'
-      error_symbol   = '[❯](bold fg:nord11)'
-
-      # Disable noisy modules not useful on a remote dev box
-      [package]
-      disabled = true
-      [aws]
-      disabled = true
-      [gcloud]
-      disabled = true
-      [azure]
-      disabled = true
-      [battery]
-      disabled = true
+      PROMPT_COMMAND='_devbox_root_ps1'
 
 runcmd:
   - |
@@ -433,10 +263,9 @@ runcmd:
     trap 'echo "cloud-init FAILED at line $LINENO" >> /var/log/devbox-init.log; touch /var/lib/devbox-init.failed' ERR
 
     LOG=/var/log/devbox-init.log
-    # Template variable captured once so it's a plain shell variable inside heredoc
     DEVBOX_USER='${username}'
 
-    # Fail-open helper: label + command string, eval'd in a subshell.
+    # Fail-open helper: label + command, eval'd in a subshell.
     try_install() {
       local label="$1" cmd="$2"
       ( eval "$cmd" >> "$LOG" 2>&1 ) \
@@ -457,7 +286,7 @@ runcmd:
 
     sysctl -p /etc/sysctl.d/99-devbox.conf || true
 
-    # Phase 2: apt keys + update package index + install code + gh
+    # Phase 2: apt keys + update package index + install code, gh, docker
     install -d -m 0755 /etc/apt/keyrings
 
     curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
@@ -467,14 +296,32 @@ runcmd:
       -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
     chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
 
+    # Docker CE — codename-aware deb822 source
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+      | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    chmod a+r /etc/apt/keyrings/docker.gpg
+    codename="$(. /etc/os-release && echo "$VERSION_CODENAME")"
+    cat > /etc/apt/sources.list.d/docker.sources <<DOCKER
+    Types: deb
+    URIs: https://download.docker.com/linux/ubuntu
+    Suites: $codename
+    Components: stable
+    Architectures: amd64
+    Signed-By: /etc/apt/keyrings/docker.gpg
+    DOCKER
+
     apt-get update || true
-    try_install "code" "apt-get install -y code"
-    try_install "gh"   "apt-get install -y gh"
+    try_install "code"   "apt-get install -y code"
+    try_install "gh"     "apt-get install -y gh"
+    try_install "docker" "apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
+
+    # non-root docker access
+    usermod -aG docker "$DEVBOX_USER" 2>/dev/null \
+      || echo "docker group add skipped (docker not installed?)" >> "$LOG"
 
     # Phase 3: hardening + service cleanup
-    # Enable starship for root (bash)
-    grep -qxF 'command -v starship' /root/.bashrc \
-      || printf '\n# Starship prompt\ncommand -v starship >/dev/null && eval "$(starship init bash)"\n' >> /root/.bashrc
+    grep -qxF '[ -f ~/.bashrc.devbox ]' /root/.bashrc \
+      || printf '\n# Devbox red prompt\n[ -f ~/.bashrc.devbox ] && . ~/.bashrc.devbox\n' >> /root/.bashrc
 
     systemctl restart ssh || systemctl restart sshd
 
@@ -503,10 +350,6 @@ runcmd:
     sudo -u "$DEVBOX_USER" bash -lc 'pipx ensurepath && pipx install linode-cli'
 
     # Phase 4b: system installs — parallel
-
-    # starship
-    try_install "starship" \
-      'curl -sS https://starship.rs/install.sh | sh -s -- --yes' &
 
     # kubectl
     try_install "kubectl" \
@@ -548,12 +391,24 @@ runcmd:
 
     wait  # join all phase-4c background jobs
 
-    # Phase 5: zsh completions
+%{ if dotfiles_repo != "" ~}
+    # Phase 4d: dotfiles — installs oh-my-zsh + symlinks; --no-packages skips
+    # apt (cloud-init already covers it); SHELL preset avoids a chsh prompt.
+    try_install_user "dotfiles" \
+      'rm -rf ~/.dotfiles &&
+       git clone --depth 1 "${dotfiles_repo}" ~/.dotfiles &&
+       cd ~/.dotfiles &&
+       env SHELL="$(command -v zsh)" ./install.sh --unattended --no-packages'
+%{ endif ~}
+
+    # Phase 5: zsh completions + tealdeer cache
     sudo -u "$DEVBOX_USER" bash -lc '
       command -v linode-cli >/dev/null \
         && linode-cli completion zsh > ~/.zfunc/_linode-cli 2>/dev/null || true
       command -v gh >/dev/null \
         && gh completion -s zsh > ~/.zfunc/_gh 2>/dev/null || true
+      command -v tldr >/dev/null \
+        && tldr --update 2>/dev/null || true
     '
 
     # Phase 6: cleanup

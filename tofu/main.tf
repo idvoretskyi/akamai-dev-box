@@ -25,7 +25,7 @@ locals {
 
   region        = coalesce(var.region, try(local.cli.region, ""), "gb-lon")
   instance_type = coalesce(var.instance_type, try(local.cli.type, ""), "g6-standard-4")
-  image         = coalesce(var.image, try(local.cli.image, ""), "linode/ubuntu24.04")
+  image         = coalesce(var.image, try(local.cli.image, ""), "linode/ubuntu26.04")
 
   username = coalesce(var.username, data.external.local_user.result.username)
   instance = coalesce(var.instance_label, "${local.username}-dev-box")
@@ -42,6 +42,9 @@ locals {
     region          = local.region
     instance_type   = local.instance_type
     image           = local.image
+    dotfiles_repo   = var.dotfiles_repo
+    git_user_name   = var.git_user_name
+    git_user_email  = var.git_user_email
   })
 }
 
@@ -67,7 +70,7 @@ resource "linode_instance" "dev_box" {
     }
     precondition {
       condition     = can(regex("^(linode/ubuntu[0-9]+\\.[0-9]+|private/)", local.image))
-      error_message = "Unsupported image '${local.image}'. Supported: any linode/ubuntu<NN>.<NN> slug (e.g. linode/ubuntu24.04) or private/ image."
+      error_message = "Unsupported image '${local.image}'. Supported: any linode/ubuntu<NN>.<NN> slug (e.g. linode/ubuntu26.04) or private/ image."
     }
     ignore_changes = [root_pass]
   }

@@ -4,15 +4,17 @@
 [![Validate](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml)
 [![Trivy Security Scan](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml)
 
-OpenTofu config for an Ubuntu 24.04 dev box on [Akamai Cloud](https://www.linode.com/). **g6-standard-4** (4 vCPU / 8 GB / 160 GB, $48/mo) by default. Ready ~2–3 min after `tofu apply`.
+OpenTofu config for an Ubuntu 26.04 dev box on [Akamai Cloud](https://www.linode.com/). **g6-standard-4** (4 vCPU / 8 GB / 160 GB, $48/mo) by default. Ready ~2–3 min after `tofu apply`.
 
 ## What's included
 
-**Shell:** zsh + [starship](https://starship.rs) (Nord) + tmux (Nord), fzf, zoxide, eza, bat, ripgrep, fd, jq, git-delta, htop, ncdu, tldr, direnv, tree.
+**Shell:** zsh + oh-my-zsh, tmux, vim, and git config bootstrapped from [idvoretskyi/dotfiles](https://github.com/idvoretskyi/dotfiles) (override via `dotfiles_repo`). Devbox-specific extras land in `~/.zshrc.local` / `~/.gitconfig.local` — the dotfiles' own extension points. Plus: fzf, zoxide, eza, bat, ripgrep, fd, jq, git-delta, htop, ncdu, tldr (tealdeer), direnv, tree.
 
 **Dev CLIs:** gh, VS Code (`code tunnel`), Claude Code, opencode, mise, kubectl, opentofu, linode-cli.
 
-**System:** zram (RAM/2, zstd), earlyoom, k3s disabled by default (`k3s-up` / `k3s-down`).
+**Containers:** Docker CE (+ buildx, compose) — enables per-project [devcontainers](https://containers.dev/) via VS Code Remote-SSH "Reopen in Container". k3s installed but disabled (`k3s-up` / `k3s-down`).
+
+**System:** zram (RAM/2, zstd), earlyoom.
 
 ## Quick start
 
@@ -34,13 +36,15 @@ Key variables (`tofu/variables.tf`):
 
 | Variable | Default | Notes |
 |---|---|---|
-| `region` / `instance_type` / `image` | from `~/.config/linode-cli` (keys: `region`, `type`, `image`) | fallback: `gb-lon` / `g6-standard-4` / `linode/ubuntu24.04` |
+| `region` / `instance_type` / `image` | from `~/.config/linode-cli` (keys: `region`, `type`, `image`) | fallback: `gb-lon` / `g6-standard-4` / `linode/ubuntu26.04` |
 | `authorized_keys`, `root_pass` | — | required |
+| `dotfiles_repo` | [idvoretskyi/dotfiles](https://github.com/idvoretskyi/dotfiles) | cloned to `~/.dotfiles`, installed unattended; `""` skips |
+| `git_user_name` / `git_user_email` | — | optional; written to `~/.gitconfig.local` on the box |
 | `linode_token` | — | optional; pre-seeds `linode-cli` on the box |
 | `allowed_ssh_cidrs_ipv4/6` | `0.0.0.0/0` | restrict in production |
 | `extra_packages` | `[]` | additional apt packages |
 
-Supported images: any `linode/ubuntu<NN>.<NN>` slug (e.g. `linode/ubuntu24.04`, default) or `private/*`.
+Supported images: any `linode/ubuntu<NN>.<NN>` slug (e.g. `linode/ubuntu26.04`, default) or `private/*`. Note: an `image` key in `~/.config/linode-cli` overrides the built-in fallback — pin `image` in `terraform.tfvars` to be explicit.
 
 ## Scaling
 
