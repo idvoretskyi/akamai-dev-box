@@ -16,7 +16,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Run Trivy (misconfigurations & secrets)
         uses: aquasecurity/trivy-action@v0.36.0
