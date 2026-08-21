@@ -57,6 +57,8 @@ variable "image" {
   nullable    = true
 
   validation {
+    # Kept in sync with local.image_pattern (locals.tf); variable validation
+    # blocks cannot reference locals, so this copy must be updated by hand.
     condition     = var.image == null || can(regex("^(linode/ubuntu[0-9]+\\.[0-9]+|private/)", var.image))
     error_message = "Image must be an Ubuntu image slug (e.g. linode/ubuntu26.04) or a private/ image slug."
   }

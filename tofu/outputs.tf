@@ -38,7 +38,7 @@ output "image" {
 
 output "ipv4_address" {
   description = "Public IPv4 address."
-  value       = length(linode_instance.dev_box.ipv4) > 0 ? tolist(linode_instance.dev_box.ipv4)[0] : null
+  value       = local.have_ip ? local.ipv4 : null
 }
 
 output "ipv6_address" {
@@ -69,29 +69,24 @@ output "firewall_status" {
 # Operational helpers (eval the -raw output to run them)
 ###############################################################################
 
-locals {
-  ip      = length(linode_instance.dev_box.ipv4) > 0 ? tolist(linode_instance.dev_box.ipv4)[0] : ""
-  have_ip = local.ip != ""
-}
-
 output "ssh_command" {
   description = "SSH as root."
-  value       = local.have_ip ? "ssh root@${local.ip}" : null
+  value       = local.have_ip ? "ssh root@${local.ipv4}" : null
 }
 
 output "ssh_command_user" {
   description = "SSH as the non-root user."
-  value       = local.have_ip ? "ssh ${local.username}@${local.ip}" : null
+  value       = local.have_ip ? "ssh ${local.username}@${local.ipv4}" : null
 }
 
 output "first_boot_log_command" {
   description = "Tail cloud-init log on the box."
-  value       = local.have_ip ? "ssh ${local.username}@${local.ip} 'sudo tail -f /var/log/devbox-init.log'" : null
+  value       = local.have_ip ? "ssh ${local.username}@${local.ipv4} 'sudo tail -f /var/log/devbox-init.log'" : null
 }
 
 output "wait_ready_command" {
   description = "Poll until cloud-init finishes (or fails). Exits 0 on success, 1 on failure."
-  value       = local.have_ip ? "until ssh -o StrictHostKeyChecking=accept-new ${local.username}@${local.ip} 'test -f /var/lib/devbox-init.done || test -f /var/lib/devbox-init.failed' 2>/dev/null; do echo waiting...; sleep 15; done; ssh ${local.username}@${local.ip} 'test -f /var/lib/devbox-init.done && echo ready || { echo FAILED - check /var/log/devbox-init.log; exit 1; }'" : null
+  value       = local.have_ip ? "until ssh -o StrictHostKeyChecking=accept-new ${local.username}@${local.ipv4} 'test -f /var/lib/devbox-init.done || test -f /var/lib/devbox-init.failed' 2>/dev/null; do echo waiting...; sleep 15; done; ssh ${local.username}@${local.ipv4} 'test -f /var/lib/devbox-init.done && echo ready || { echo FAILED - check /var/log/devbox-init.log; exit 1; }'" : null
 }
 
 ###############################################################################
@@ -100,12 +95,12 @@ output "wait_ready_command" {
 
 output "ssh_config_snippet" {
   description = "~/.ssh/config block for this box. Append via ssh_config_install_command."
-  value       = local.have_ip ? "# BEGIN akamai-dev-box\nHost $USER-dev-box\n  HostName ${local.ip}\n  User ${local.username}\n  IdentityFile ~/.ssh/id_ed25519\n  StrictHostKeyChecking accept-new\n# END akamai-dev-box" : null
+  value       = local.have_ip ? local.ssh_config_block : null
 }
 
 output "ssh_config_install_command" {
   description = "Idempotently install the SSH config block into ~/.ssh/config (removes any previous block first)."
-  value       = local.have_ip ? "sed -i.bak '/^# BEGIN akamai-dev-box$/,/^# END akamai-dev-box$/d' ~/.ssh/config 2>/dev/null; rm -f ~/.ssh/config.bak; printf '# BEGIN akamai-dev-box\\nHost %s-dev-box\\n  HostName ${local.ip}\\n  User ${local.username}\\n  IdentityFile ~/.ssh/id_ed25519\\n  StrictHostKeyChecking accept-new\\n# END akamai-dev-box\\n' \"$USER\" >> ~/.ssh/config; chmod 600 ~/.ssh/config" : null
+  value       = local.have_ip ? "sed -i.bak '/^# BEGIN akamai-dev-box$/,/^# END akamai-dev-box$/d' ~/.ssh/config 2>/dev/null; rm -f ~/.ssh/config.bak; printf '${replace(join("\\n", local.ssh_config_lines), "$USER", "%s")}\\n' \"$USER\" >> ~/.ssh/config; chmod 600 ~/.ssh/config" : null
 }
 
 output "ssh_config_remove_command" {
