@@ -13,6 +13,10 @@ resource "linode_instance" "dev_box" {
   private_ip      = var.private_ip
   backups_enabled = var.backups_enabled
 
+  # Preserve existing disks during plan changes; allocate extra space separately.
+  resize_disk    = false
+  migration_type = "cold"
+
   metadata {
     user_data = base64encode(local.cloud_init)
   }

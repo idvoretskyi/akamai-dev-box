@@ -27,7 +27,7 @@ variable "region" {
 }
 
 variable "instance_type" {
-  description = "Akamai (Linode) instance plan. Optional — inherits from ~/.config/linode-cli, then falls back to g6-standard-4 (4 vCPU / 8 GB RAM / 160 GB SSD)."
+  description = "Akamai (Linode) instance plan. Optional; inherits from ~/.config/linode-cli, then falls back to g6-standard-6 (6 shared vCPUs / 16 GiB RAM / 320 GiB disk allowance)."
   type        = string
   default     = null
   nullable    = true

@@ -7,7 +7,7 @@ locals {
   cli = data.external.linode_cli.result
 
   region        = coalesce(var.region, try(local.cli.region, ""), "gb-lon")
-  instance_type = coalesce(var.instance_type, try(local.cli.type, ""), "g6-standard-4")
+  instance_type = coalesce(var.instance_type, try(local.cli.type, ""), "g6-standard-6")
   image         = coalesce(var.image, try(local.cli.image, ""), "linode/ubuntu26.04")
 
   # Kept in sync with the validation regex on var.image (Terraform validation
