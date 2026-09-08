@@ -107,12 +107,12 @@ try_install "opentofu" \
 
 # k3s — installed but disabled (start with k3s-up)
 try_install "k3s" \
-  "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='server \
+  "curl -sfL https://get.k3s.io | INSTALL_K3S_SKIP_START=true INSTALL_K3S_SKIP_ENABLE=true INSTALL_K3S_EXEC='server \
     --disable traefik \
     --disable servicelb \
     --disable metrics-server \
     --disable network-policy \
-    --write-kubeconfig-mode 0644 \
+    --write-kubeconfig-mode 0600 \
     --kube-apiserver-arg=default-watch-cache-size=0 \
     --kubelet-arg=image-gc-high-threshold=70 \
     --kubelet-arg=image-gc-low-threshold=50' sh -" &

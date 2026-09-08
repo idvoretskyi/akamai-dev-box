@@ -163,10 +163,11 @@ write_files:
         tmux attach -t main 2>/dev/null || tmux new-session -s main
       fi
 
-      # k3s (installed but disabled — start on demand to save RAM)
-      export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-      alias k3s-up='sudo systemctl start k3s && echo "k3s started — run: kubectl get nodes"'
-      alias k3s-down='sudo systemctl stop k3s && echo "k3s stopped"'
+      # Remote clusters use ~/.kube/config; local k3s is always explicit.
+      alias k3s-kubectl='sudo k3s kubectl --kubeconfig=/etc/rancher/k3s/k3s.yaml'
+      alias k3s-up='sudo systemctl start k3s && echo "k3s started; run: k3s-kubectl get nodes"'
+      # k3s service shutdown alone can leave workload containers running.
+      alias k3s-down='sudo /usr/local/bin/k3s-killall.sh'
       alias k='kubectl'
 
       # opencode installs to ~/.opencode/bin
