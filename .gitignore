@@ -9,6 +9,7 @@
 # Terraform variable files (may contain secrets)
 terraform.tfvars
 *.auto.tfvars
+*.auto.tfvars.json
 
 # Crash log files
 crash.log

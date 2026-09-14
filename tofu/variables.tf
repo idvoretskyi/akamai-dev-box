@@ -178,6 +178,19 @@ variable "allowed_ssh_cidrs_ipv6" {
 # Cloud-init
 ###############################################################################
 
+variable "deployment_user_data_base64" {
+  description = "Exact base64 metadata.user_data from an existing deployment's verified state. Pin this for an existing-instance upgrade (e.g. a plan/type change): any diff in the rendered cloud-init forces replacement in the locked provider, so pinning the original payload keeps a compatible change in place instead of rebuilding. Set privately (e.g. in an ignored *.auto.tfvars.json, not committed) and never in terraform.tfvars.example. Null renders the current template, as for a fresh deployment."
+  type        = string
+  default     = null
+  nullable    = true
+  sensitive   = true
+
+  validation {
+    condition     = var.deployment_user_data_base64 == null || can(base64decode(var.deployment_user_data_base64))
+    error_message = "deployment_user_data_base64 must be valid base64, copied verbatim from the existing deployment's state."
+  }
+}
+
 variable "seed_linode_cli" {
   description = "Seed ~/.config/linode-cli/cli on the box with the linode_token, region, instance_type, and image. Opt-in (default false) because the token grants full Linode account access — use a scoped token and only enable when you need linode-cli on the box."
   type        = bool

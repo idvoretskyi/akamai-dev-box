@@ -57,6 +57,13 @@ the correct deployment state and a separately reviewed infrastructure plan.
   Never commit them in plaintext, even to a private repo. If a recovery archive
   is needed, encrypt it and keep the decryption key outside the repository.
   Git is not a state backend with locking. Do not create a repo unnecessarily.
+- `deployment_user_data_base64` carries a real deployment's exact boot metadata.
+  Set it only in a private, ignored `*.auto.tfvars.json` file, never in
+  `terraform.tfvars.example` or any committed file.
+- `linode_instance.dev_box` has `prevent_destroy = true`. Do not remove it to
+  work around a failing plan; only remove it for a deliberately reviewed,
+  separately approved replacement (see README's "Intentional replacement"),
+  and prefer restoring the guard afterward.
 - Use scoped credentials. Docker-group access and sudo are privileged, not
   agent sandboxes. Avoid printing secrets in tool output or logs.
 - Confirm Kubernetes context and namespace before mutations; prefer explicit

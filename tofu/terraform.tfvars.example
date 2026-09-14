@@ -75,3 +75,13 @@ instance_type = "g7-dedicated-32-16"
 # Seed ~/.config/linode-cli/cli on the box with the token (opt-in).
 # WARNING: grants full Linode account access from the box — use a scoped token.
 # seed_linode_cli = false
+
+###############################################################################
+# Existing-instance upgrade only — do not set here
+###############################################################################
+
+# deployment_user_data_base64 pins an existing deployment's exact original
+# metadata.user_data to keep an upgrade in place (see README's "Upgrade an
+# existing instance"). It is state-derived and deployment-specific: set it
+# only in a private, ignored *.auto.tfvars.json file (matched by .gitignore,
+# mode 0600), never here and never committed.
