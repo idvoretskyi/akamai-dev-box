@@ -27,14 +27,14 @@ variable "region" {
 }
 
 variable "instance_type" {
-  description = "Akamai (Linode) instance plan. Optional; inherits from ~/.config/linode-cli, then falls back to g6-standard-6 (6 shared vCPUs / 16 GiB RAM / 320 GiB disk allowance)."
+  description = "Akamai (Linode) instance plan. Optional; inherits from ~/.config/linode-cli, then falls back to g7-dedicated-32-16 (16 dedicated vCPUs / 32 GiB RAM / 640 GiB disk allowance)."
   type        = string
   default     = null
   nullable    = true
 
   validation {
     condition     = var.instance_type == null || can(regex("^g[0-9]+-", var.instance_type))
-    error_message = "Instance type must be a valid Linode plan slug (e.g. g6-standard-4, g6-standard-2, g6-dedicated-4)."
+    error_message = "Instance type must be a valid Linode plan slug (e.g. g6-standard-4, g7-dedicated-32-16, g6-dedicated-4)."
   }
 }
 

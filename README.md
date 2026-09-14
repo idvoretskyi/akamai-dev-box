@@ -4,11 +4,11 @@
 [![Validate](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml)
 [![Trivy Security Scan](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml)
 
-OpenTofu configuration for an always-on Ubuntu 26.04 LTS development workstation on [Akamai Cloud](https://www.linode.com/). Baseline: **g6-standard-6** (6 shared vCPUs / 16 GiB RAM / 320 GiB disk allowance, **$96/month**). Explicit variables override local Linode CLI defaults, which override built-in fallbacks; the example pins the baseline plan.
+OpenTofu configuration for an always-on Ubuntu 26.04 LTS development workstation on [Akamai Cloud](https://www.linode.com/). Baseline: **g7-dedicated-32-16** (16 dedicated vCPUs / 32 GiB RAM / 640 GiB disk allowance, **$346/month**). Explicit variables override local Linode CLI defaults, which override built-in fallbacks; the example pins the baseline plan.
 
-Connect through Termius or another SSH client, keep coding agents in tmux, and use the box for builds, containers, and small CPU PyTorch experiments. GPU training and Kubeflow execution belong to the separate [akamai-lke-gpu-cluster](https://github.com/idvoretskyi/akamai-lke-gpu-cluster) lab. This repo does not install Kubeflow or CUDA on the dev box.
+Connect through Termius or another SSH client, keep coding agents in tmux, and use the box for builds, containers, small CPU PyTorch experiments, and occasional local CPU LLM inference (e.g. quantized Qwen 30B-class models) alongside hosted coding-agent subscriptions (Claude Code, Codex, Copilot). GPU training and Kubeflow execution belong to the separate [akamai-lke-gpu-cluster](https://github.com/idvoretskyi/akamai-lke-gpu-cluster) lab. This repo does not install Kubeflow or CUDA on the dev box.
 
-Paid backups are disabled. Pricing is the London base rate checked September 8, 2026, excluding taxes, additional services, and usage charges. Configuration changes alone do not resize an existing instance.
+Paid backups are disabled. Pricing is the London base rate checked September 14, 2026, excluding taxes, additional services, and usage charges. Configuration changes alone do not resize an existing instance.
 
 ## What's included
 
@@ -45,7 +45,7 @@ Key variables (`tofu/variables.tf`):
 
 | Variable | Default | Notes |
 |---|---|---|
-| `region` / `instance_type` / `image` | from `~/.config/linode-cli` (keys: `region`, `type`, `image`) | fallback: `gb-lon` / `g6-standard-6` / `linode/ubuntu26.04`; example pins the plan |
+| `region` / `instance_type` / `image` | from `~/.config/linode-cli` (keys: `region`, `type`, `image`) | fallback: `gb-lon` / `g7-dedicated-32-16` / `linode/ubuntu26.04`; example pins the plan |
 | `authorized_keys`, `root_pass` | — | required |
 | `dotfiles_repo` | [idvoretskyi/dotfiles](https://github.com/idvoretskyi/dotfiles) | cloned to `~/.dotfiles`, installed unattended; `""` skips |
 | `git_user_name` / `git_user_email` | — | optional; written to `~/.gitconfig.local` on the box |
@@ -61,26 +61,25 @@ For repeatable deployments, also pin `region`, `username`, and `instance_label` 
 ## Scaling
 
 ```
-g6-standard-2   2 vCPU /  4 GB /  80 GB — $24/mo
-g6-standard-4   4 vCPU /  8 GB / 160 GB — $48/mo
-g6-standard-6   6 vCPU / 16 GB / 320 GB — $96/mo  (baseline)
-g6-standard-8   8 vCPU / 32 GB / 640 GB — $192/mo
-g6-dedicated-2  2 vCPU /  4 GB /  80 GB — $36/mo  (dedicated CPU)
-g6-dedicated-4  4 vCPU /  8 GB / 160 GB — $72/mo  (dedicated CPU)
-g6-dedicated-8  8 vCPU / 16 GB / 320 GB — $144/mo (dedicated CPU)
+g6-standard-8       8 vCPU (shared)  / 32 GB / 640 GB — $192/mo  (budget alternative, same RAM/disk)
+g7-dedicated-4-2    2 vCPU (dedicated) /  4 GB /  80 GB —  $43/mo
+g7-dedicated-8-4    4 vCPU (dedicated) /  8 GB / 160 GB —  $86/mo
+g7-dedicated-16-8   8 vCPU (dedicated) / 16 GB / 320 GB — $173/mo (14B-class local models only)
+g7-dedicated-32-16 16 vCPU (dedicated) / 32 GB / 640 GB — $346/mo (baseline)
+g7-dedicated-64-32 32 vCPU (dedicated) / 64 GB / 1280 GB — $691/mo (Qwen3-Next 80B-class tier)
 ```
 
-Plan sizes above use Linode's GB labels; RAM and disk allowances correspond to GiB. Shared CPU is a good starting point for bursty development. Consider dedicated CPU for sustained builds, or more RAM for frequent concurrent agents, browsers, and databases. Hosted AI model inference does not run on this VM.
+Plan sizes above use Linode's GB labels; RAM and disk allowances correspond to GiB. Prices are the London (`gb-lon`) base rate; `id-cgk` and `br-gru` carry a regional uplift (roughly +20% and +40%). G7 dedicated plans run current-generation AMD EPYC (Zen 4, AVX-512) with no steal time; `g6-standard-8` is a shared-CPU alternative with identical RAM and disk at a lower price, useful if dedicated CPU isn't required. 16 GiB plans cannot hold a 30B-class quantized model — see [Local LLM inference](#local-llm-inference-optional) for sizing. Hosted AI coding-agent subscriptions (Claude Code, Codex, Copilot) remain the primary tools; local inference on this VM is occasional/secondary.
 
 ## Upgrade an existing instance
 
-1. Locate the original deployment state and inputs. With this repo's default local backend, state normally lives at `tofu/terraform.tfstate`. Confirm `linode_instance.dev_box` maps to the intended existing instance. If state is missing, stop: recover it or perform a separately reviewed import of the instance and firewall, reconciling disks and boot configuration. Never apply from empty state to upgrade a VM.
-2. Work from another machine with access to Cloud Manager and Lish. Preserve state and deployment inputs securely. Use the locked providers and review a baseline plan before changing the deployment's inputs. Do not change image, SSH keys, identity, region, or firewall as part of the resize.
+1. Locate the original deployment state and inputs. With this repo's default local backend, state normally lives at `tofu/terraform.tfstate` **on the machine that owns the deployment** (e.g. your MacBook, not this dev box). Confirm `linode_instance.dev_box` maps to the intended existing instance. If state is missing, stop: recover it or perform a separately reviewed import of the instance and firewall, reconciling disks and boot configuration. Never apply from empty state to upgrade a VM.
+2. Work from another machine with access to Cloud Manager and Lish — never from the dev box being resized. Preserve state and deployment inputs securely. Use the locked providers and review a baseline plan before changing the deployment's inputs. Do not change image, SSH keys, identity, region, or firewall as part of the resize.
 3. Check each working repository for uncommitted work and unpushed commits. Preserve required agent state, local databases, and other local-only data separately. No paid backups are required by this workflow: accept that anything not preserved may be lost and a failure may require rebuilding. GitHub only protects data actually pushed there.
-4. Explicitly set `instance_type = "g6-standard-6"` in the existing deployment inputs; leave `backups_enabled = false`. Keep automatic disk expansion disabled. The upgrade provides the new disk allowance without immediately growing the root filesystem.
-5. Generate a saved plan and require an in-place update, with no unintended creation, deletion, replacement, disk, or firewall changes. Review metadata changes carefully: this branch also changes cloud-init templates. Do not assume a full-repository apply is only a CPU/RAM resize, and do not use broad `ignore_changes` to conceal differences.
+4. Explicitly set `instance_type = "g7-dedicated-32-16"` in the existing deployment inputs only — do not change any other variable. Leave `backups_enabled = false`. Keep automatic disk expansion disabled. Confirm the deployment's region supports the "Premium Plans" capability (`gb-lon` does) and that `g7-dedicated-32-16` is actually orderable there before planning a G7 target. This is a cross-generation resize (e.g. from `g6-standard-4`); the new disk allowance is provided without immediately growing the root filesystem.
+5. Generate a saved plan and require an in-place update only: **any planned change to `metadata.user_data` forces replacement**, not an in-place update — the locked `linode/linode` provider declares that field `ForceNew`, so a changed rendered payload destroys and recreates the instance (and its local disks) rather than updating it in place. If the plan shows a `metadata.user_data` diff, stop and reconcile it before applying: pin `dotfiles_repo`, `extra_packages`, `git_user_name`, `git_user_email`, `seed_linode_cli`, and `linode_token` to their exact existing values (cloud-init template edits from history, e.g. #21, also change this field and must not be applied to an existing instance this way). Confirm the plan shows only an in-place `type` update, with no unintended creation, deletion, replacement, disk, or firewall changes, before proceeding. Do not use broad `ignore_changes` to conceal a real difference instead of reconciling it.
 6. In a maintenance window, stop agents and write-heavy services cleanly, then apply the reviewed plan externally. Cold migration shuts down the VM; SSH disconnects and tmux processes do not survive. Monitor the provider event through completion. Do not assume a fixed migration duration.
-7. Reconnect and verify `nproc`, `free -h`, `lsblk`, `df -h`, `swapon --show`, and `systemctl --failed`. Expect 6 CPUs, roughly 16 GiB usable RAM, and unchanged disk sizes. Zram is configured as RAM/2 and should adjust on reboot. Test a build and remote-cluster access, then confirm a subsequent OpenTofu plan has no unexpected drift.
+7. Reconnect and verify `nproc`, `free -h`, `lsblk`, `df -h`, `swapon --show`, and `systemctl --failed`. Expect 16 CPUs, roughly 32 GiB usable RAM, and unchanged disk sizes. Also verify the new CPU generation: `lscpu | grep "Model name"` (expect an AMD EPYC 9xxx / Zen 4 part) and `grep -c avx512f /proc/cpuinfo` (expect a non-zero count). Zram is configured as RAM/2 and should adjust on reboot. Test a build and remote-cluster access, then confirm a subsequent OpenTofu plan has no unexpected drift.
 
 If startup fails, use Lish to investigate rather than rebuilding immediately. Keeping disk allocation unchanged simplifies a later downgrade, but another resize still requires downtime and availability. Expand storage only as a separately reviewed operation when needed.
 
@@ -108,8 +107,36 @@ Unset `KUBECONFIG` in existing shells only if it still contains that old local p
 | Small CPU PyTorch experiments and unit tests | GPU training, inference, and pipeline execution |
 | Pipeline authoring/compilation and container builds | Scheduled workload pods and persistent lab volumes |
 | Kubernetes clients and dashboard tunnels | Cluster monitoring and GPU management |
+| Occasional local CPU LLM inference (quantized Qwen/GLM/Gemma via llama.cpp or Ollama) | — |
 
 Use separate worktrees and distinct Compose project names, ports, and volumes for concurrent projects. Worktrees are not security boundaries. Scope agent credentials; Docker-group membership and sudo provide privileged host access. Limit build/test concurrency so SSH and interactive agents remain responsive.
+
+### Local LLM inference (optional)
+
+Hosted coding-agent subscriptions (Claude Code, Codex, Copilot) remain the primary tools. The baseline's 32 GiB RAM also fits a secondary, occasional local model for offline use, privacy-sensitive code, or quota-exhausted moments — no cloud-init installation is included; install a runtime yourself in a project-local or user-scoped location.
+
+**Memory budget:** zram is compressed swap, not extra RAM — do not count it toward model weights. Sizes below are on-disk/download sizes for weights only; actual runtime usage is higher once the KV cache, context, and (for vision models) image encoders are loaded. Start with one loaded model, one request at a time, and a conservative initial context (roughly 4K-8K tokens); increase context only after measuring actual memory usage with `free -h`, and leave headroom for Docker, agents, and the OS.
+
+**Models that fit at 32 GiB (Q4_K_M unless noted):**
+
+| Model | Architecture | Approx. weight size | Notes |
+|---|---|---|---|
+| Qwen3-30B-A3B / Qwen3-Coder-30B-A3B | MoE, ~3B active | ~18 GB | fast (bandwidth-bound, not core-bound); good default for interactive agentic use |
+| Qwen3.6-35B-A3B | MoE, ~3B active | ~19 GB | newer agentic-tuned MoE successor |
+| GLM-4.7-Flash (30B-A3B) | MoE, ~3B active | ~19 GB | strong coding-focused MoE alternative |
+| Nemotron 3.5 Lightning (30B-A3B) | MoE, ~3B active | ~18 GB | tuned for always-on agent workloads |
+| Qwen3.8-27B / Qwen3.6-27B | dense | ~18 GB | vision + tools + thinking; higher quality, much slower on CPU — treat generation speed as unverified until measured on this hardware |
+| Gemma 4 26B (A4B) | MoE, ~4B active | ~19 GB | text + image, tools + thinking |
+| Gemma 4 31B | dense | ~20 GB | text + image, tools + thinking; no audio support in either Gemma 4 26B or 31B |
+
+Dense 30B+ models (e.g. plain Qwen 32B) do not fit meaningfully better than the MoE options above and are markedly slower; prefer an MoE model for anything interactive. 16 GiB-class plans (see [Scaling](#scaling)) cannot hold any of the above — they're limited to ~14B dense models (Qwen3-14B, Qwen2.5-Coder-14B).
+
+**Running it:**
+
+- Build or install [llama.cpp](https://github.com/ggml-org/llama.cpp) (`llama-server`) or [Ollama](https://ollama.com/) under your own user account; keep model files on disk-backed paths (the 640 GiB allowance), never under `/tmp` when it's tmpfs-mounted.
+- Bind the inference server to `127.0.0.1` only and reach it via an SSH tunnel from your client, the same pattern used for [dashboards](#remote-kubernetes-access) below — never expose it through the firewall.
+- Bound thread counts explicitly (e.g. `-t 12` on the 16-dedicated-vCPU baseline) and avoid running inference concurrently with heavy builds or PyTorch jobs; dedicated vCPUs have no steal time but still share this single box's memory bandwidth.
+- G7's Zen 4 cores (AVX-512, VNNI) speed up prompt processing noticeably versus older Zen generations; token-generation speed for MoE models is dominated by memory bandwidth either way. Benchmark actual tokens/second on this hardware before relying on it for a workflow.
 
 ### Python and PyTorch
 

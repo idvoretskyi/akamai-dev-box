@@ -3,10 +3,12 @@
 ## Purpose
 
 This repository provisions an always-on Ubuntu development workstation on Akamai
-Cloud. The baseline is `g6-standard-6` (6 shared vCPUs, 16 GiB RAM, 320 GiB disk
-allowance). It runs coding agents, containers, and small CPU PyTorch experiments.
-GPU execution and Kubeflow belong to the separate
-`idvoretskyi/akamai-lke-gpu-cluster` repository and cluster, not this VM.
+Cloud. The baseline is `g7-dedicated-32-16` (16 dedicated vCPUs, 32 GiB RAM, 640
+GiB disk allowance). It runs coding agents, containers, small CPU PyTorch
+experiments, and occasional local CPU LLM inference (e.g. quantized Qwen 30B
+MoE models) alongside hosted coding-agent subscriptions. GPU execution and
+Kubeflow belong to the separate `idvoretskyi/akamai-lke-gpu-cluster` repository
+and cluster, not this VM.
 
 ## Layout
 
