@@ -75,12 +75,14 @@ Plan sizes use Linode's GB labels; RAM and disk allowances correspond to GiB. Pr
 1. Work from the machine that owns the deployment state (e.g. your MacBook) — never from the dev box being resized, and never from missing state.
 2. Push every working repository and back up local-only data first; a resize reboots the box and SSH/tmux sessions do not survive.
 3. **Downsizing:** the target plan's disk allowance must already fit the instance's current disks (320 GiB for `g7-dedicated-16-8`). Check with `linode-cli linodes disks-list <id>` or Cloud Manager; disk shrink is a separate, powered-off, manually approved step, never a side effect of this plan.
-4. Read the exact `metadata.user_data` out of verified state and pin it as `deployment_user_data_base64` in a private, ignored `*.auto.tfvars.json` file:
+4. Read the exact `metadata.user_data` out of verified state and write it directly to a private, ignored `*.auto.tfvars.json` file — do not print it to the terminal, since it may embed the Linode API token when `seed_linode_cli` was enabled:
    ```sh
-   tofu -chdir=tofu show -json | jq -r \
-     '.values.root_module.resources[] | select(.address=="linode_instance.dev_box") | .values.metadata[0].user_data'
+   (umask 077 && tofu -chdir=tofu show -json | jq \
+     '{deployment_user_data_base64: (.values.root_module.resources[]
+       | select(.address=="linode_instance.dev_box") | .values.metadata[0].user_data)}' \
+     > tofu/zz-existing-deployment.auto.tfvars.json)
    ```
-   Any other diff in the rendered cloud-init forces replacement (`user_data` is `ForceNew`), which `prevent_destroy` blocks outright.
+   `umask 077` keeps the file `0600` as it's created; never `cat`, log, or commit it. Any other diff in the rendered cloud-init forces replacement (`user_data` is `ForceNew`), which `prevent_destroy` blocks outright.
 5. Change only `instance_type`. Generate a saved plan and confirm it shows a single in-place `type` update — no replacement, disk, or firewall changes.
 6. Apply in a maintenance window (cold migration = reboot). Reconnect and verify `nproc`, `free -h`, `df -h`, `swapon --show`, and `systemctl --failed` match the target plan; zram adjusts to RAM/2 on reboot.
 
