@@ -186,8 +186,8 @@ variable "deployment_user_data_base64" {
   sensitive   = true
 
   validation {
-    condition     = var.deployment_user_data_base64 == null || can(base64decode(var.deployment_user_data_base64))
-    error_message = "deployment_user_data_base64 must be valid base64, copied verbatim from the existing deployment's state."
+    condition     = var.deployment_user_data_base64 == null ? true : trimspace(var.deployment_user_data_base64) != "" && can(base64decode(var.deployment_user_data_base64))
+    error_message = "deployment_user_data_base64 must be non-empty valid base64, copied verbatim from the existing deployment's state."
   }
 }
 
