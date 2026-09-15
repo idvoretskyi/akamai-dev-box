@@ -18,10 +18,18 @@ resource "linode_instance" "dev_box" {
   migration_type = "cold"
 
   metadata {
-    user_data = base64encode(local.cloud_init)
+    # deployment_user_data_base64 lets an existing-instance resize pin the
+    # exact original rendered payload (see README's "Resize an existing
+    # instance"), since any change to this field forces replacement.
+    user_data = var.deployment_user_data_base64 != null ? var.deployment_user_data_base64 : base64encode(local.cloud_init)
   }
 
   lifecycle {
+    # An in-place resize must not silently become a rebuild. Review and
+    # explicitly remove this guard before intentionally replacing the
+    # instance (see README's "Intentional replacement" section).
+    prevent_destroy = true
+
     precondition {
       condition     = can(regex("^[a-z_][a-z0-9_-]{0,31}$", local.username))
       error_message = "Resolved deploy username '${local.username}' is not a valid Linux username. Set TF_VAR_username or ensure your local $USER is a valid Linux username (lowercase, max 32 chars)."

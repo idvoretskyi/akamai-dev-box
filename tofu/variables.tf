@@ -27,14 +27,14 @@ variable "region" {
 }
 
 variable "instance_type" {
-  description = "Akamai (Linode) instance plan. Optional; inherits from ~/.config/linode-cli, then falls back to g6-standard-6 (6 shared vCPUs / 16 GiB RAM / 320 GiB disk allowance)."
+  description = "Akamai (Linode) instance plan. Optional; inherits from ~/.config/linode-cli, then falls back to g7-dedicated-16-8 (8 dedicated vCPUs / 16 GiB RAM / 320 GiB disk allowance)."
   type        = string
   default     = null
   nullable    = true
 
   validation {
     condition     = var.instance_type == null || can(regex("^g[0-9]+-", var.instance_type))
-    error_message = "Instance type must be a valid Linode plan slug (e.g. g6-standard-4, g6-standard-2, g6-dedicated-4)."
+    error_message = "Instance type must be a valid Linode plan slug (e.g. g6-standard-4, g7-dedicated-16-8, g6-dedicated-4)."
   }
 }
 
@@ -177,6 +177,19 @@ variable "allowed_ssh_cidrs_ipv6" {
 ###############################################################################
 # Cloud-init
 ###############################################################################
+
+variable "deployment_user_data_base64" {
+  description = "Exact base64 metadata.user_data from an existing deployment's verified state. Pin this for an existing-instance resize (e.g. a plan/type change): any diff in the rendered cloud-init forces replacement in the locked provider, so pinning the original payload keeps a compatible change in place instead of rebuilding. Set privately (e.g. in an ignored *.auto.tfvars.json, not committed) and never in terraform.tfvars.example. Null renders the current template, as for a fresh deployment."
+  type        = string
+  default     = null
+  nullable    = true
+  sensitive   = true
+
+  validation {
+    condition     = var.deployment_user_data_base64 == null ? true : trimspace(var.deployment_user_data_base64) != "" && can(base64decode(var.deployment_user_data_base64))
+    error_message = "deployment_user_data_base64 must be non-empty valid base64, copied verbatim from the existing deployment's state."
+  }
+}
 
 variable "seed_linode_cli" {
   description = "Seed ~/.config/linode-cli/cli on the box with the linode_token, region, instance_type, and image. Opt-in (default false) because the token grants full Linode account access — use a scoped token and only enable when you need linode-cli on the box."
