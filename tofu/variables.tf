@@ -179,7 +179,7 @@ variable "allowed_ssh_cidrs_ipv6" {
 ###############################################################################
 
 variable "deployment_user_data_base64" {
-  description = "Exact base64 metadata.user_data from an existing deployment's verified state. Pin this for an existing-instance upgrade (e.g. a plan/type change): any diff in the rendered cloud-init forces replacement in the locked provider, so pinning the original payload keeps a compatible change in place instead of rebuilding. Set privately (e.g. in an ignored *.auto.tfvars.json, not committed) and never in terraform.tfvars.example. Null renders the current template, as for a fresh deployment."
+  description = "Exact base64 metadata.user_data from an existing deployment's verified state. Pin this for an existing-instance resize (e.g. a plan/type change): any diff in the rendered cloud-init forces replacement in the locked provider, so pinning the original payload keeps a compatible change in place instead of rebuilding. Set privately (e.g. in an ignored *.auto.tfvars.json, not committed) and never in terraform.tfvars.example. Null renders the current template, as for a fresh deployment."
   type        = string
   default     = null
   nullable    = true

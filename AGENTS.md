@@ -39,7 +39,7 @@ git diff --check
 For template edits, render with synthetic, non-secret inputs in an isolated
 temporary directory. Check rendered YAML and shell syntax without executing
 bootstrap scripts. Exercise both optional CLI-seeding and dotfiles branches.
-Validation does not prove an existing-instance upgrade is safe; that requires
+Validation does not prove an existing-instance resize is safe; that requires
 the correct deployment state and a separately reviewed infrastructure plan.
 
 ## Safety Boundaries

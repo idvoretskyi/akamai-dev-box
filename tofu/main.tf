@@ -18,14 +18,14 @@ resource "linode_instance" "dev_box" {
   migration_type = "cold"
 
   metadata {
-    # deployment_user_data_base64 lets an existing-instance upgrade pin the
-    # exact original rendered payload (see README's "Upgrade an existing
+    # deployment_user_data_base64 lets an existing-instance resize pin the
+    # exact original rendered payload (see README's "Resize an existing
     # instance"), since any change to this field forces replacement.
     user_data = var.deployment_user_data_base64 != null ? var.deployment_user_data_base64 : base64encode(local.cloud_init)
   }
 
   lifecycle {
-    # An in-place upgrade must not silently become a rebuild. Review and
+    # An in-place resize must not silently become a rebuild. Review and
     # explicitly remove this guard before intentionally replacing the
     # instance (see README's "Intentional replacement" section).
     prevent_destroy = true
