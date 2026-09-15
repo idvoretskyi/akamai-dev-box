@@ -2,13 +2,14 @@
 
 ## Purpose
 
-This repository provisions an always-on Ubuntu development workstation on Akamai
-Cloud. The baseline is `g7-dedicated-32-16` (16 dedicated vCPUs, 32 GiB RAM, 640
-GiB disk allowance). It runs coding agents, containers, small CPU PyTorch
-experiments, and occasional local CPU LLM inference (e.g. quantized Qwen 30B
-MoE models) alongside hosted coding-agent subscriptions. GPU execution and
-Kubeflow belong to the separate `idvoretskyi/akamai-lke-gpu-cluster` repository
-and cluster, not this VM.
+This repository provisions a personal, always-on Ubuntu development
+workstation on Akamai Cloud dedicated to running hosted coding agents
+(opencode, Claude Code, Codex, GitHub Copilot). The baseline is
+`g7-dedicated-16-8` (8 dedicated vCPUs, 16 GiB RAM, 320 GiB disk allowance). It
+also runs containers, small CPU PyTorch experiments, and small local CPU LLMs
+(≤14B-class) as a secondary, occasional use. GPU execution and Kubeflow belong
+to the separate `idvoretskyi/akamai-lke-gpu-cluster` repository and cluster,
+not this VM.
 
 ## Layout
 
@@ -51,6 +52,10 @@ the correct deployment state and a separately reviewed infrastructure plan.
   Stop on unexpected changes; do not mask them with broad `ignore_changes`.
 - Run a VM resize from outside that VM. SSH and tmux processes will be lost on
   reboot. Keep `resize_disk = false` unless disk expansion is explicitly approved.
+- A downsize only succeeds if the instance's allocated disks already fit the
+  target plan's allowance (e.g. 320 GiB for `g7-dedicated-16-8`). Verify this
+  before planning; disk shrink is a separate, powered-off, manually approved
+  operation, never a side effect of a plan change.
 - Paid backups remain disabled. Before disruptive work, identify uncommitted
   changes and local-only data; GitHub only preserves what has been pushed.
 - State, plans, tfvars, tokens, passwords, and kubeconfigs may contain secrets.

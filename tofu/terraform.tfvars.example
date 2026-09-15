@@ -23,8 +23,8 @@ authorized_keys = [
 # Generate with: openssl rand -base64 32
 root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD_AT_LEAST_16_CHARS"
 
-# 16 dedicated vCPUs / 32 GiB RAM / 640 GiB disk allowance, $346/month base.
-instance_type = "g7-dedicated-32-16"
+# 8 dedicated vCPUs / 16 GiB RAM / 320 GiB disk allowance, $173/month base.
+instance_type = "g7-dedicated-16-8"
 
 ###############################################################################
 # Optional — inherited from ~/.config/linode-cli / $USER when left unset

@@ -4,25 +4,25 @@
 [![Validate](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml)
 [![Trivy Security Scan](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml)
 
-OpenTofu configuration for an always-on Ubuntu 26.04 LTS development workstation on [Akamai Cloud](https://www.linode.com/). Baseline: **g7-dedicated-32-16** (16 dedicated vCPUs / 32 GiB RAM / 640 GiB disk allowance, **$346/month**). Explicit variables override local Linode CLI defaults, which override built-in fallbacks; the example pins the baseline plan.
+OpenTofu configuration for a personal, always-on Ubuntu 26.04 LTS dev box on [Akamai Cloud](https://www.linode.com/), dedicated to running hosted coding agents — opencode, Claude Code, Codex, and GitHub Copilot. Baseline: **g7-dedicated-16-8** (8 dedicated vCPUs / 16 GiB RAM / 320 GiB disk, **$173/month**). Explicit variables override local Linode CLI defaults, which override built-in fallbacks; the example pins the baseline plan.
 
-Connect through Termius or another SSH client, keep coding agents in tmux, and use the box for builds, containers, small CPU PyTorch experiments, and occasional local CPU LLM inference (e.g. quantized Qwen 30B-class models) alongside hosted coding-agent subscriptions (Claude Code, Codex, Copilot). GPU training and Kubeflow execution belong to the separate [akamai-lke-gpu-cluster](https://github.com/idvoretskyi/akamai-lke-gpu-cluster) lab. This repo does not install Kubeflow or CUDA on the dev box.
+Connect through Termius or another SSH client, keep agents in tmux, and use the box for builds, containers, small CPU PyTorch experiments, and small local CPU LLMs. GPU training and Kubeflow execution belong to the separate [akamai-lke-gpu-cluster](https://github.com/idvoretskyi/akamai-lke-gpu-cluster) lab. This repo does not install Kubeflow or CUDA on the dev box.
 
-Paid backups are disabled. Pricing is the London base rate checked September 14, 2026, excluding taxes, additional services, and usage charges. Configuration changes alone do not resize an existing instance.
+Paid backups are disabled. Pricing is the London base rate, excluding taxes, additional services, and usage charges. Configuration changes alone do not resize an existing instance.
 
 ## What's included
 
 **Shell:** zsh + oh-my-zsh, tmux, vim, and git config bootstrapped from [idvoretskyi/dotfiles](https://github.com/idvoretskyi/dotfiles) (override via `dotfiles_repo`). Devbox-specific extras land in `~/.zshrc.local` / `~/.gitconfig.local` — the dotfiles' own extension points. Plus: fzf, zoxide, eza, bat, ripgrep, fd, jq, git-delta, htop, ncdu, tldr (tealdeer), direnv, tree.
 
-**Dev CLIs:** gh, VS Code (`code tunnel`), Claude Code, opencode, mise, kubectl, opentofu, linode-cli.
+**Dev CLIs:** gh, VS Code (`code tunnel`), Claude Code, opencode, mise, kubectl, opentofu, linode-cli. Codex and GitHub Copilot are used through their own login (editor extension / `gh copilot`) — install and authenticate them yourself on first login.
 
-**Containers:** Docker CE (+ buildx, compose) enables per-project [devcontainers](https://containers.dev/). Local k3s is installed without starting or enabling its service; use `k3s-up`, `k3s-kubectl`, and `k3s-down` explicitly. Normal `kubectl` uses the standard kubeconfig lookup, not a forced local-cluster configuration.
+**Containers:** Docker CE (+ buildx, compose) enables per-project [devcontainers](https://containers.dev/). Local k3s is installed without starting or enabling its service; use `k3s-up`, `k3s-kubectl`, and `k3s-down` explicitly.
 
 **System:** zram (RAM/2, zstd), earlyoom.
 
 ## Fresh deployment
 
-Only use this procedure to create a new instance. For the existing dev box, follow [Upgrade an existing instance](#upgrade-an-existing-instance). A clone does not include deployment state or secret inputs.
+Only use this procedure to create a new instance. For the existing dev box, follow [Resize an existing instance](#resize-an-existing-instance). A clone does not include deployment state or secret inputs.
 
 ```sh
 export LINODE_TOKEN="your-token-here"
@@ -45,83 +45,45 @@ Key variables (`tofu/variables.tf`):
 
 | Variable | Default | Notes |
 |---|---|---|
-| `region` / `instance_type` / `image` | from `~/.config/linode-cli` (keys: `region`, `type`, `image`) | fallback: `gb-lon` / `g7-dedicated-32-16` / `linode/ubuntu26.04`; example pins the plan |
+| `region` / `instance_type` / `image` | from `~/.config/linode-cli` (keys: `region`, `type`, `image`) | fallback: `gb-lon` / `g7-dedicated-16-8` / `linode/ubuntu26.04`; example pins the plan |
 | `authorized_keys`, `root_pass` | — | required |
 | `dotfiles_repo` | [idvoretskyi/dotfiles](https://github.com/idvoretskyi/dotfiles) | cloned to `~/.dotfiles`, installed unattended; `""` skips |
 | `git_user_name` / `git_user_email` | — | optional; written to `~/.gitconfig.local` on the box |
 | `linode_token` | unset | optional provider token; otherwise use `LINODE_TOKEN`; CLI seeding also requires `seed_linode_cli = true` |
 | `backups_enabled` | `false` | paid backups are not part of this baseline |
-| `deployment_user_data_base64` | `null` (unset) | sensitive; pins the exact original `metadata.user_data` for an existing-instance upgrade — see [Upgrade an existing instance](#upgrade-an-existing-instance); never set in `terraform.tfvars.example` |
+| `deployment_user_data_base64` | `null` (unset) | sensitive; pins the exact original `metadata.user_data` for an existing-instance resize — see [Resize an existing instance](#resize-an-existing-instance); never set in `terraform.tfvars.example` |
 | `allowed_ssh_cidrs_ipv4/6` | `0.0.0.0/0` / `::/0` | restrict where practical without locking out remote access |
 | `extra_packages` | `[]` | additional apt packages |
 
-Supported images: any `linode/ubuntu<NN>.<NN>` slug (e.g. `linode/ubuntu26.04`, default) or `private/*`. Note: an `image` key in `~/.config/linode-cli` overrides the built-in fallback — pin `image` in `terraform.tfvars` to be explicit.
-
-For repeatable deployments, also pin `region`, `username`, and `instance_label` instead of inheriting another operator's environment. The instance resource explicitly uses cold migration and `resize_disk = false`: plan changes preserve existing disk sizes. A fresh deployment still receives its plan's initial disk allocation.
-
-State defaults to the local backend declared in `tofu/backend.tf` (`tofu/terraform.tfstate`); migrating to a remote backend is a separate, explicitly reviewed change, not a side effect of other configuration edits. The instance resource also sets `prevent_destroy = true`: an upgrade plan that would replace or destroy it fails instead, and that guard must be deliberately removed to accept a rebuild (see [Intentional replacement](#intentional-replacement-seeded-or-otherwise-forced)).
+Supported images: any `linode/ubuntu<NN>.<NN>` slug (e.g. `linode/ubuntu26.04`, default) or `private/*`. Pin `region`, `username`, and `instance_label` for repeatable deployments instead of inheriting another operator's environment. State defaults to the local backend in `tofu/backend.tf`; the instance keeps `resize_disk = false` (plan changes preserve existing disks) and `prevent_destroy = true` (a plan that would replace or destroy it fails instead — see [Intentional replacement](#intentional-replacement)).
 
 ## Scaling
 
 ```
-g6-standard-8       8 vCPU (shared)  / 32 GB / 640 GB — $192/mo  (budget alternative, same RAM/disk)
+g6-standard-6       6 vCPU (shared)    / 16 GB / 320 GB — $96/mo   (budget alternative, same RAM/disk)
 g7-dedicated-4-2    2 vCPU (dedicated) /  4 GB /  80 GB —  $43/mo
 g7-dedicated-8-4    4 vCPU (dedicated) /  8 GB / 160 GB —  $86/mo
-g7-dedicated-16-8   8 vCPU (dedicated) / 16 GB / 320 GB — $173/mo (14B-class local models only)
-g7-dedicated-32-16 16 vCPU (dedicated) / 32 GB / 640 GB — $346/mo (baseline)
-g7-dedicated-64-32 32 vCPU (dedicated) / 64 GB / 1280 GB — $691/mo (Qwen3-Next 80B-class tier)
+g7-dedicated-16-8   8 vCPU (dedicated) / 16 GB / 320 GB — $173/mo  (baseline)
+g7-dedicated-32-16 16 vCPU (dedicated) / 32 GB / 640 GB — $346/mo  (previous baseline; needed for 30B-class local MoE models)
+g7-dedicated-64-32 32 vCPU (dedicated) / 64 GB / 1280 GB — $691/mo
 ```
 
-Plan sizes above use Linode's GB labels; RAM and disk allowances correspond to GiB. Prices are the London (`gb-lon`) base rate; `id-cgk` and `br-gru` carry a regional uplift (roughly +20% and +40%). Per [Akamai's compute-plan documentation](https://techdocs.akamai.com/cloud-computing/docs/how-to-choose-a-compute-instance-plan), G7 Dedicated plans run on Zen 3 cores with full physical cores reserved per Linode, eliminating shared-tenant CPU contention. `g6-standard-8` is a shared-CPU alternative with identical RAM and disk at a lower price, useful if dedicated CPU isn't required. 16 GiB plans cannot hold a 30B-class quantized model — see [Local LLM inference](#local-llm-inference-optional) for sizing. Hosted AI coding-agent subscriptions (Claude Code, Codex, Copilot) remain the primary tools; local inference on this VM is occasional/secondary.
+Plan sizes use Linode's GB labels; RAM and disk allowances correspond to GiB. Prices are the London (`gb-lon`) base rate; `id-cgk` and `br-gru` carry a regional uplift (roughly +20% and +40%). `g6-standard-6` is a shared-CPU alternative with identical RAM and disk at a lower price, useful if dedicated CPU isn't required.
 
-## Upgrade an existing instance
+## Resize an existing instance
 
-1. Locate the original deployment state and inputs. With this repo's default local backend, state normally lives at `tofu/terraform.tfstate` **on the machine that owns the deployment** (e.g. your MacBook, not this dev box). Confirm `linode_instance.dev_box` maps to the intended existing instance. If state is missing, stop: recover it or perform a separately reviewed import of the instance and firewall, reconciling disks and boot configuration. Never apply from empty state to upgrade a VM.
-2. Work from another machine with access to Cloud Manager and Lish — never from the dev box being resized. Preserve state and deployment inputs securely. Use the locked providers and review a baseline plan before changing the deployment's inputs. Do not change image, SSH keys, identity, region, or firewall as part of the resize.
+1. Work from the machine that owns the deployment state (e.g. your MacBook) — never from the dev box being resized, and never from missing state.
+2. Push every working repository and back up local-only data first; a resize reboots the box and SSH/tmux sessions do not survive.
+3. **Downsizing:** the target plan's disk allowance must already fit the instance's current disks (320 GiB for `g7-dedicated-16-8`). Check with `linode-cli linodes disks-list <id>` or Cloud Manager; disk shrink is a separate, powered-off, manually approved step, never a side effect of this plan.
+4. Read the exact `metadata.user_data` out of verified state (`tofu -chdir=tofu show -json | jq '...values.metadata[0].user_data'`) and pin it as `deployment_user_data_base64` in a private, ignored `*.auto.tfvars.json` file. Any other diff in the rendered cloud-init forces replacement (`user_data` is `ForceNew`), which `prevent_destroy` blocks outright.
+5. Change only `instance_type`. Generate a saved plan and confirm it shows a single in-place `type` update — no replacement, disk, or firewall changes.
+6. Apply in a maintenance window (cold migration = reboot). Reconnect and verify `nproc`, `free -h`, `df -h`, `swapon --show`, and `systemctl --failed` match the target plan; zram adjusts to RAM/2 on reboot.
 
-   If this checkout was last initialized before `tofu/backend.tf` existed, OpenTofu now sees an explicit `local` backend where it previously used its implicit default, and the next `init` stops with a backend-configuration-changed error rather than silently reusing the old state. Back up `tofu/terraform.tfstate` first, then run `tofu -chdir=tofu init -migrate-state` (accept copying the existing state into the same local path) rather than `-reconfigure`, which can discard it. Confirm `tofu -chdir=tofu state list` still shows the existing `linode_instance.dev_box` and `linode_firewall.dev_box_fw[0]` afterward, with the same resource IDs, before generating any plan.
-3. Check each working repository for uncommitted work and unpushed commits. Preserve required agent state, local databases, and other local-only data separately. No paid backups are required by this workflow: accept that anything not preserved may be lost and a failure may require rebuilding. GitHub only protects data actually pushed there.
-4. Explicitly set `instance_type = "g7-dedicated-32-16"` in the existing deployment inputs only — do not change any other variable. Leave `backups_enabled = false`. Keep automatic disk expansion disabled. Confirm `g7-dedicated-32-16` is actually orderable in the deployment's region before planning a G7 target. This is a cross-generation resize (e.g. from `g6-standard-4`); the new disk allowance is provided without immediately growing the root filesystem.
-5. Generate a saved plan and require an in-place update only: **any planned change to `metadata.user_data` forces replacement**, not an in-place update — the locked `linode/linode` provider declares that field `ForceNew`, so a changed rendered payload destroys and recreates the instance (and its local disks) rather than updating it in place. `prevent_destroy = true` on `linode_instance.dev_box` makes OpenTofu refuse such a plan outright rather than silently rebuilding.
+If startup fails, use Lish to investigate rather than rebuilding immediately.
 
-   The reliable way to avoid this: read the exact `metadata.user_data` value out of the verified existing state (e.g. `tofu -chdir=tofu show -json | jq` on the resource's `values.metadata[0].user_data`) and set it as `deployment_user_data_base64` in a **private, ignored** input file (e.g. `tofu/zz-existing-deployment.auto.tfvars.json`, mode `0600`, matched by `.gitignore`'s `*.auto.tfvars.json` rule — never in `terraform.tfvars.example` or any committed file). With that variable pinned, `tofu/main.tf` uses the preserved payload verbatim and does not re-render `local.cloud_init` at all, so this upgrade is independent of every other cloud-init input below — including CLI seeding (see the seeded-deployment note further down). Preserve this file alongside `terraform.tfvars` for future operations on the same instance; losing it (without also having the original state) means falling back to manual reconciliation or an intentional replacement.
+### Intentional replacement
 
-   Without pinning `deployment_user_data_base64`, you must manually reconcile **every one of** the inputs that render `local.cloud_init` in `tofu/locals.tf`: `username` (defaults to the local `$USER` running `tofu apply` when `var.username` is unset — pin `username` explicitly if you apply from a different machine or account than the original deployment), `instance_label` (defaults to `<username>-dev-box`, and in turn is `hostname`'s own default — pin `instance_label` explicitly whenever `hostname` is left unset), `hostname`, `timezone`, `authorized_keys`, `extra_packages`, `region`, `image`, `git_user_name`, `git_user_email`, `dotfiles_repo` (via the embedded first-boot script), plus `seed_linode_cli`/`linode_token`/`instance_type` when CLI seeding applies (see below) — pin all of these to their exact existing values before generating the plan; a change in any one of them changes `metadata.user_data` just as much as an intentional `instance_type` change would (cloud-init template edits from history, e.g. #21, also change this field and must not be applied to an existing instance this way).
-
-   Either way, confirm the saved plan shows only an in-place `type` update, with no unintended creation, deletion, replacement, disk, or firewall changes, before proceeding. Do not use broad `ignore_changes` to conceal a real difference instead of reconciling or pinning it.
-
-   **Seeded deployments:** when `seed_linode_cli = true` and `linode_token` is set, the rendered cloud-init embeds the resolved `instance_type` (see `tofu/cloud-init/main.yaml.tpl`), so changing the plan changes `metadata.user_data` regardless of which other variables are pinned — manual reconciliation cannot avoid this for a plan change. Pinning `deployment_user_data_base64` still works, since it bypasses re-rendering entirely; that is the only in-place path available for a seeded deployment's plan change. Otherwise, accept the [intentional replacement](#intentional-replacement-seeded-or-otherwise-forced) below.
-6. In a maintenance window, stop agents and write-heavy services cleanly, then apply the reviewed plan externally. Cold migration shuts down the VM; SSH disconnects and tmux processes do not survive. Monitor the provider event through completion. Do not assume a fixed migration duration.
-7. Reconnect and verify `nproc`, `free -h`, `lsblk`, `df -h`, `swapon --show`, and `systemctl --failed`. Expect 16 CPUs, roughly 32 GiB usable RAM, and unchanged disk sizes. Also inspect the new host's actual CPU with `lscpu | grep "Model name"` and `grep -o -E "avx2|avx512f|fma|f16c" /proc/cpuinfo | sort -u` — this is informational (record what you get; don't assume a specific generation or instruction set in advance, see [Scaling](#scaling)). Zram is configured as RAM/2 and should adjust on reboot. Test a build and remote-cluster access, then confirm a subsequent OpenTofu plan has no unexpected drift.
-
-If startup fails, use Lish to investigate rather than rebuilding immediately. Keeping disk allocation unchanged simplifies a later downgrade, but another resize still requires downtime and availability. Expand storage only as a separately reviewed operation when needed.
-
-### Intentional replacement (seeded or otherwise forced)
-
-If the reviewed plan requires replacement — because reconciliation isn't feasible, cloud-init templates changed, or another input still differs and pinning `deployment_user_data_base64` isn't desired — an in-place resize is not available; a rebuild is the accepted alternative:
-
-1. Push every working repository first, including local branches and commits; separately back up any uncommitted files, local databases, credentials, and other host-local data you need. GitHub only preserves what has been pushed.
-2. Preserve the original state and `terraform.tfvars` securely, then review the full set of proposed inputs as if for a [fresh deployment](#fresh-deployment): SSH keys, username, image, `dotfiles_repo`, and any other variables. Leave `deployment_user_data_base64` unset so the current cloud-init template is rendered fresh — a replacement creates a new instance and does not reuse the old boot configuration.
-3. Explicitly remove (or comment out) `prevent_destroy = true` on `linode_instance.dev_box` in `tofu/main.tf` as a deliberate, reviewed change; otherwise OpenTofu refuses to apply a replacement plan. Restore the guard afterward for the new instance if you want the same protection going forward.
-4. Review the saved plan for an explicit `-/+` replacement of `linode_instance.dev_box`, with no unrelated resource creation or deletion. When `create_firewall = true`, expect an in-place update to `linode_firewall.dev_box_fw[0].linodes` to attach the existing firewall to the replacement instance's new ID (see `tofu/main.tf`). This attachment update is expected; changes to firewall rules, policies, or allowed CIDRs must be intentional and separately reviewed.
-5. Apply the reviewed plan. The new instance receives the plan's initial disk allocation (not the old instance's disk sizes) and reruns first-boot bootstrap; local files on the old instance's disks are not carried over.
-6. Update your SSH config with the new IP (`ssh_config_install_command`/`ssh_config_remove_command` outputs) and reauthenticate `claude` / `opencode` / `code tunnel` / `gh auth login` on first login, same as [Fresh deployment](#fresh-deployment).
-
-State and plan files can contain passwords and user data. Never commit plaintext state, secret tfvars, tokens, or kubeconfigs, even to private GitHub repositories. If encrypted recovery artifacts are stored in a private repo, retain the decryption key elsewhere. GitHub repositories are not live OpenTofu backends with state locking.
-
-### Existing-host shell migration
-
-Cloud-init is a first-boot mechanism, not ongoing configuration management. Resizing does not install these repository changes onto the host. Do not rerun the full bootstrap or reset cloud-init to apply a shell fix.
-
-On hosts created with the older template, edit only the k3s section in `~/.zshrc.local`: remove `export KUBECONFIG=/etc/rancher/k3s/k3s.yaml` and replace the local aliases with:
-
-```sh
-alias k3s-kubectl='sudo k3s kubectl --kubeconfig=/etc/rancher/k3s/k3s.yaml'
-alias k3s-up='sudo systemctl start k3s && echo "k3s started; run: k3s-kubectl get nodes"'
-alias k3s-down='sudo /usr/local/bin/k3s-killall.sh'
-```
-
-Unset `KUBECONFIG` in existing shells only if it still contains that old local path, then reload the edited shell configuration. Existing tmux sessions may also retain the old environment. Keep any intentional custom kubeconfig setup. Change the existing k3s `--write-kubeconfig-mode` setting from `0644` to `0600` and restrict the file's permissions during a separately scheduled local-k3s maintenance step; the new template uses root-only credentials accessed via sudo.
+If reconciliation isn't feasible and a plan requires replacing the instance: remove (or comment out) `prevent_destroy = true` in `tofu/main.tf` as a deliberate, reviewed change, review the inputs as for a [fresh deployment](#fresh-deployment) (leave `deployment_user_data_base64` unset), confirm the plan shows only an expected `-/+` replacement (plus the firewall reattaching to the new instance ID), apply, then update SSH config (`ssh_config_install_command`/`ssh_config_remove_command` outputs) and reauthenticate agents on first login. Restore `prevent_destroy` afterward if wanted. Never commit plaintext state, tfvars, tokens, or kubeconfigs.
 
 ## Remote coding and ML
 
@@ -131,40 +93,31 @@ Unset `KUBECONFIG` in existing shells only if it still contains that old local p
 | Small CPU PyTorch experiments and unit tests | GPU training, inference, and pipeline execution |
 | Pipeline authoring/compilation and container builds | Scheduled workload pods and persistent lab volumes |
 | Kubernetes clients and dashboard tunnels | Cluster monitoring and GPU management |
-| Occasional local CPU LLM inference (quantized Qwen/GLM/Gemma via llama.cpp or Ollama) | — |
 
-Use separate worktrees and distinct Compose project names, ports, and volumes for concurrent projects. Worktrees are not security boundaries. Scope agent credentials; Docker-group membership and sudo provide privileged host access. Limit build/test concurrency so SSH and interactive agents remain responsive.
+Use separate worktrees and distinct Compose project names, ports, and volumes for concurrent projects. Worktrees are not security boundaries. Scope agent credentials; Docker-group membership and sudo provide privileged host access.
 
 ### Local LLM inference (optional)
 
-Hosted coding-agent subscriptions (Claude Code, Codex, Copilot) remain the primary tools. The baseline's 32 GiB RAM also fits a secondary, occasional local model for offline use, privacy-sensitive code, or quota-exhausted moments — no cloud-init installation is included; install a runtime yourself in a project-local or user-scoped location.
+Hosted coding agents are the primary tools; a small local model works for offline or privacy-sensitive moments. Nothing is installed by cloud-init. Models that fit comfortably in 16 GiB (Q4_K_M):
 
-**Memory budget:** zram is compressed swap, not extra RAM — do not count it toward model weights. Sizes below are on-disk/download sizes for weights only; actual runtime usage is higher once the KV cache, context, and (for vision models) image encoders are loaded. Start with one loaded model, one request at a time, and a conservative initial context (roughly 4K-8K tokens); increase context only after measuring actual memory usage with `free -h`, and leave headroom for Docker, agents, and the OS.
+| Model | Tag | Size |
+|---|---|---|
+| Gemma 4 12B | `gemma4:12b` | 7.6 GB |
+| Ornith 1.5 9B | `ornith-1.5:9b` | 6.6 GB |
+| Granite 4.2 8B | `granite4.2:8b` | 5.3 GB |
 
-**Models that fit at 32 GiB (Q4_K_M unless noted):**
+```sh
+curl -fsSL https://ollama.com/install.sh | sh   # listens on 127.0.0.1:11434 by default
+ollama run gemma4:12b
+ollama run ornith-1.5:9b
+ollama run granite4.2:8b
+```
 
-| Model | Architecture | Approx. weight size | Notes |
-|---|---|---|---|
-| Qwen3-30B-A3B / Qwen3-Coder-30B-A3B | MoE, ~3B active | ~18 GB | fast (bandwidth-bound, not core-bound); good default for interactive agentic use |
-| Qwen3.6-35B-A3B | MoE, ~3B active | ~19 GB | newer agentic-tuned MoE successor |
-| GLM-4.7-Flash (30B-A3B) | MoE, ~3B active | ~19 GB | strong coding-focused MoE alternative |
-| Nemotron 3.5 Lightning (30B-A3B) | MoE, ~3B active | ~18 GB | tuned for always-on agent workloads |
-| Qwen3.8-27B / Qwen3.6-27B | dense | ~18 GB | vision + tools + thinking; higher quality, much slower on CPU — treat generation speed as unverified until measured on this hardware |
-| Gemma 4 26B (A4B) | MoE, ~4B active | ~19 GB | text + image, tools + thinking |
-| Gemma 4 31B | dense | ~20 GB | text + image, tools + thinking; no audio support in either Gemma 4 26B or 31B |
-
-Dense 30B+ models (e.g. plain Qwen 32B) do not fit meaningfully better than the MoE options above and are markedly slower; prefer an MoE model for anything interactive. 16 GiB-class plans (see [Scaling](#scaling)) cannot hold any of the above — they're limited to ~14B dense models (Qwen3-14B, Qwen2.5-Coder-14B).
-
-**Running it:**
-
-- Build or install [llama.cpp](https://github.com/ggml-org/llama.cpp) (`llama-server`) or [Ollama](https://ollama.com/) under your own user account; keep model files on disk-backed paths (the 640 GiB allowance), never under `/tmp` when it's tmpfs-mounted.
-- Bind the inference server to `127.0.0.1` only and reach it via an SSH tunnel from your client, the same pattern used for [dashboards](#remote-kubernetes-access) below — never expose it through the firewall.
-- Bound thread counts explicitly (e.g. `-t 12` on the 16-dedicated-vCPU baseline) and avoid running inference concurrently with heavy builds or PyTorch jobs; dedicated cores remove shared-tenant contention but still share this single box's memory bandwidth.
-- Check the actual CPU features with `grep -o -E "avx2|avx512f|fma|f16c" /proc/cpuinfo | sort -u` before assuming any instruction-set speedup. G7 Dedicated runs Zen 3 per Akamai's plan documentation; any instruction-set or performance benefit over the previous host still needs to be measured. Token-generation speed for MoE models is dominated by memory bandwidth regardless of CPU generation. Benchmark both prompt-processing and token-generation throughput on the actual host before relying on it for a workflow.
+Keep it on localhost (reach it via `ssh -L 11434:127.0.0.1:11434 $USER-dev-box`), don't run it alongside heavy builds, and expect 27B+ models to need the 32 GiB tier (see [Scaling](#scaling)).
 
 ### Python and PyTorch
 
-Use a project-local environment with a Python version supported by the chosen PyTorch release. Manage Python via mise rather than replacing Ubuntu's system Python. In that project, using the selected interpreter:
+Use a project-local environment with a Python version supported by the chosen PyTorch release, managed via mise rather than replacing Ubuntu's system Python:
 
 ```sh
 python -m venv .venv
@@ -173,36 +126,24 @@ python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
 python -c 'import torch; print(torch.__version__); print("CUDA available:", torch.cuda.is_available())'
 ```
 
-This is a CPU-only smoke setup, not a locked project specification. Pin dependencies and record the CPU package source in the project's lock/config files. Install the appropriate Kubeflow SDK in that environment when needed; match its version to the remote platform. CUDA dependencies belong in remote GPU workload images.
-
-Bound PyTorch thread counts and DataLoader workers; start with a single small experiment rather than saturating all CPUs alongside builds. Store datasets, checkpoints, and artifacts on disk-backed paths, not `/tmp` when it is mounted as tmpfs. Cache only what can be regenerated without recovery.
+This is a CPU-only smoke setup, not a locked project spec. Pin dependencies, bound thread/DataLoader worker counts, and keep datasets and checkpoints on disk-backed paths, not `/tmp` when tmpfs-mounted.
 
 ### Remote Kubernetes access
 
-The [LKE repository](https://github.com/idvoretskyi/akamai-lke-gpu-cluster) owns cluster provisioning and kubeconfig setup. Obtain credentials securely and keep them outside Git. Do not run that repository's `apply` merely to connect to an existing cluster.
+The [LKE repository](https://github.com/idvoretskyi/akamai-lke-gpu-cluster) owns cluster provisioning and kubeconfig setup. Obtain credentials securely and keep them outside Git.
 
 ```sh
 kubectl config get-contexts
-# Replace LAB_CONTEXT with the intended context; do not switch it implicitly.
 kubectl --context LAB_CONTEXT get nodes
 kubectl --context LAB_CONTEXT --namespace YOUR_NAMESPACE get pods
-```
-
-Check `kubectl version --client` against the actual API-server version; kubectl should be within one minor version of the server. Bootstrap currently installs the latest stable client, which is not a compatibility guarantee for an older cluster. Pin a compatible client with mise when needed. The cluster repo also requires standalone `kustomize` for its Kubeflow installation workflow; it is not installed by this bootstrap. Install the version required by the selected Kubeflow manifests when working on that repo. `kubectl kustomize` is not a replacement for scripts invoking `kustomize` directly.
-
-For dashboards, run a localhost-bound port forward on the dev box (replace all placeholders):
-
-```sh
 kubectl --context LAB_CONTEXT --namespace NAMESPACE port-forward --address 127.0.0.1 svc/SERVICE 8080:SERVICE_PORT
 ```
 
-In Termius, configure local forwarding from your client port 8080 to `127.0.0.1:8080` through the dev-box SSH connection. Open `http://127.0.0.1:8080` on that client, retaining the service's authentication and using HTTPS if required. Do not bind the remote forward to `0.0.0.0` or expose notebooks through public firewall rules. A forward in tmux survives SSH loss, but the client tunnel must reconnect and neither survives a VM reboot automatically.
+Check `kubectl version --client` against the server version and pin a compatible client with mise if needed. For dashboards, forward the local port through your SSH client to `127.0.0.1:8080` — never bind to `0.0.0.0` or expose notebooks through public firewall rules.
 
 ### Optional local k3s
 
-Use `k3s-up` and `k3s-kubectl` for disposable local Kubernetes experiments. Keep the full Kubeflow platform on LKE. Apply pod requests/limits and restrict parallel jobs on this shared workstation.
-
-`k3s-down` invokes the installed `k3s-killall.sh`: it stops local k3s containers and resets local cluster networking without deleting cluster data. Stop important jobs gracefully first and verify local resources have been released. It does not shut down the remote LKE cluster. Never confuse it with `k3s-uninstall.sh`, which removes the local installation and data.
+Use `k3s-up` and `k3s-kubectl` for disposable local Kubernetes experiments; keep the full Kubeflow platform on LKE. `k3s-down` (the installed `k3s-killall.sh`) stops local containers and resets local networking without deleting cluster data — it does not touch the remote LKE cluster and is not `k3s-uninstall.sh`.
 
 ## Development checks
 
@@ -215,7 +156,7 @@ tofu -chdir=tofu validate
 git diff --check
 ```
 
-These checks do not create or resize infrastructure. Validate rendered shell/YAML syntax when editing cloud-init; do not execute first-boot scripts on the development host.
+These checks do not create or resize infrastructure.
 
 ## Troubleshooting
 
