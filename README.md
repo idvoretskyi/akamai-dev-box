@@ -4,7 +4,7 @@
 [![Validate](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml)
 [![Trivy Security Scan](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml)
 
-OpenTofu configuration for a personal, always-on Ubuntu 26.04 LTS dev box on [Akamai Cloud](https://www.linode.com/), dedicated to running hosted coding agents — opencode, Claude Code, Codex, and GitHub Copilot. Baseline: **g8-dedicated-16-4** (4 dedicated Zen 5 vCPUs / 16 GiB RAM / 164 GiB disk, **$0.21/hour, no monthly cap, ≈$151–156/month**). Explicit variables override local Linode CLI defaults, which override built-in fallbacks; the example pins the baseline plan.
+OpenTofu configuration for a personal, always-on Ubuntu 26.04 LTS dev box on [Akamai Cloud](https://www.linode.com/), dedicated to running hosted coding agents — opencode, Claude Code, Codex, and GitHub Copilot. Baseline: **g8-dedicated-16-4** (4 dedicated Zen 5 vCPUs / 16 GiB RAM / 160 GB disk, **$0.21/hour, no monthly cap, ≈$151–156/month**). Explicit variables override local Linode CLI defaults, which override built-in fallbacks; the example pins the baseline plan.
 
 Connect through Termius or another SSH client, keep agents in tmux, and use the box for builds, containers, small CPU PyTorch experiments, and small local CPU LLMs. GPU training and Kubeflow execution belong to the separate [akamai-lke-gpu-cluster](https://github.com/idvoretskyi/akamai-lke-gpu-cluster) lab. This repo does not install Kubeflow or CUDA on the dev box.
 
@@ -63,11 +63,11 @@ Supported images: any `linode/ubuntu<NN>.<NN>` slug (e.g. `linode/ubuntu26.04`, 
 
 ```
 g6-standard-6       6 vCPU (shared)  / 16 GB / 320 GB — $96/mo   (budget alternative; bundled 6 TB transfer)
-g8-dedicated-8-4    4 vCPU (Zen 5)   /  8 GB /  82 GB — ~$102/mo (0.14/hr)
-g8-dedicated-16-4   4 vCPU (Zen 5)   / 16 GB / 164 GB — ~$153/mo (0.21/hr, baseline)
-g8-dedicated-16-8   8 vCPU (Zen 5)   / 16 GB / 164 GB — ~$197/mo (0.27/hr; more parallel throughput, e.g. -j8 builds or CPU LLM prompt processing)
-g8-dedicated-32-8   8 vCPU (Zen 5)   / 32 GB / 328 GB — ~$307/mo (0.42/hr)
-g8-dedicated-32-16 16 vCPU (Zen 5)   / 32 GB / 328 GB — ~$394/mo (0.54/hr; 30B-class local MoE models)
+g8-dedicated-8-4    4 vCPU (Zen 5)   /  8 GB /  80 GB — ~$102/mo (0.14/hr)
+g8-dedicated-16-4   4 vCPU (Zen 5)   / 16 GB / 160 GB — ~$153/mo (0.21/hr, baseline)
+g8-dedicated-16-8   8 vCPU (Zen 5)   / 16 GB / 160 GB — ~$197/mo (0.27/hr; more parallel throughput, e.g. -j8 builds or CPU LLM prompt processing)
+g8-dedicated-32-8   8 vCPU (Zen 5)   / 32 GB / 320 GB — ~$307/mo (0.42/hr)
+g8-dedicated-32-16 16 vCPU (Zen 5)   / 32 GB / 320 GB — ~$394/mo (0.54/hr; 30B-class local MoE models)
 ```
 
 Plan sizes use Linode's GB labels; RAM and disk allowances correspond to GiB. Prices are the London (`gb-lon`) hourly rate × ~730 hours; `id-cgk` and `br-gru` carry a regional uplift (roughly +20% and +40%). Since 2026-07-01, G8 Dedicated plans (like GPU Linodes) are billed hourly with **no monthly cap** — the figures above are indicative, not a hard ceiling; see [Understanding how billing works](https://techdocs.akamai.com/cloud-computing/docs/understanding-how-billing-works). `g6-standard-6` is a shared-CPU alternative with identical RAM and disk, useful if dedicated CPU isn't required, and it still carries a bundled transfer allowance unlike the G8 plans above. The previous baseline was `g7-dedicated-16-8` (8 dedicated Zen 3 vCPUs / 16 GiB RAM / 320 GiB disk, $173/month cap, 6 TB bundled transfer) — its larger disk allowance and parallel throughput may still suit workloads that don't fit `g8-dedicated-16-8`.
@@ -76,7 +76,7 @@ Plan sizes use Linode's GB labels; RAM and disk allowances correspond to GiB. Pr
 
 1. Work from the machine that owns the deployment state (e.g. your MacBook) — never from the dev box being resized, and never from missing state.
 2. Push every working repository and back up local-only data first; a resize reboots the box and SSH/tmux sessions do not survive.
-3. **Downsizing:** the target plan's disk allowance must already fit the instance's current disks (164 GiB for `g8-dedicated-16-4`). Check with `linode-cli linodes disks-list <id>` or Cloud Manager; disk shrink is a separate, powered-off, manually approved step, never a side effect of this plan.
+3. **Downsizing:** the target plan's disk allowance must already fit the instance's current disks (160 GB for `g8-dedicated-16-4`; the existing instance's disks already total 160 GB). Check with `linode-cli linodes disks-list <id>` or Cloud Manager; disk shrink is a separate, powered-off, manually approved step, never a side effect of this plan.
 4. Read the exact `metadata.user_data` out of verified state and write it directly to a private, ignored `*.auto.tfvars.json` file — do not print it to the terminal, since it may embed the Linode API token when `seed_linode_cli` was enabled:
    ```sh
    (umask 077 && tofu -chdir=tofu show -json | jq \

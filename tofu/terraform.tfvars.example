@@ -23,7 +23,7 @@ authorized_keys = [
 # Generate with: openssl rand -base64 32
 root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD_AT_LEAST_16_CHARS"
 
-# 4 dedicated Zen 5 vCPUs / 16 GiB RAM / 164 GiB disk allowance.
+# 4 dedicated Zen 5 vCPUs / 16 GiB RAM / 160 GB disk allowance.
 # $0.21/hour, no monthly cap (~$151-156/month); outbound transfer is metered
 # (not pooled) at $0.005/GiB in gb-lon — see README's "Network transfer" note.
 instance_type = "g8-dedicated-16-4"
