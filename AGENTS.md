@@ -53,9 +53,11 @@ the correct deployment state and a separately reviewed infrastructure plan.
 - Run a VM resize from outside that VM. SSH and tmux processes will be lost on
   reboot. Keep `resize_disk = false` unless disk expansion is explicitly approved.
 - A downsize only succeeds if the instance's allocated disks already fit the
-  target plan's allowance (e.g. 160 GB for `g8-dedicated-16-4`). Verify this
-  before planning; disk shrink is a separate, powered-off, manually approved
-  operation, never a side effect of a plan change.
+  target plan's allowance (e.g. `g8-dedicated-16-4` is labelled 160 GB but its
+  API-reported allowance is 167,936 MiB). Compare exact MiB totals via
+  `linode-cli linodes disks-list <id>`, not rounded GB labels, before planning;
+  disk shrink is a separate, powered-off, manually approved operation, never a
+  side effect of a plan change.
 - Paid backups remain disabled. Before disruptive work, identify uncommitted
   changes and local-only data; GitHub only preserves what has been pushed.
 - State, plans, tfvars, tokens, passwords, and kubeconfigs may contain secrets.

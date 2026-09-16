@@ -76,7 +76,7 @@ Plan sizes use Linode's GB labels; RAM and disk allowances correspond to GiB. Pr
 
 1. Work from the machine that owns the deployment state (e.g. your MacBook) — never from the dev box being resized, and never from missing state.
 2. Push every working repository and back up local-only data first; a resize reboots the box and SSH/tmux sessions do not survive.
-3. **Downsizing:** the target plan's disk allowance must already fit the instance's current disks (160 GB for `g8-dedicated-16-4`; the existing instance's disks already total 160 GB). Check with `linode-cli linodes disks-list <id>` or Cloud Manager; disk shrink is a separate, powered-off, manually approved step, never a side effect of this plan.
+3. **Downsizing:** the target plan's disk allowance must already fit the instance's current disks — compare exact totals, not rounded GB labels: `g8-dedicated-16-4` is labelled 160 GB but its API-reported allowance is 167,936 MiB, and this repo's existing instance's disks total 163,840 MiB (163,328 MiB ext4 + 512 MiB swap), so they fit with headroom. Check exact disk totals with `linode-cli linodes disks-list <id>` (sizes in MiB) or Cloud Manager; disk shrink is a separate, powered-off, manually approved step, never a side effect of this plan.
 4. Read the exact `metadata.user_data` out of verified state and write it directly to a private, ignored `*.auto.tfvars.json` file — do not print it to the terminal, since it may embed the Linode API token when `seed_linode_cli` was enabled:
    ```sh
    (umask 077 && tofu -chdir=tofu show -json | jq \
