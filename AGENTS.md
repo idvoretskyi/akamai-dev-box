@@ -5,7 +5,7 @@
 This repository provisions a personal, always-on Ubuntu development
 workstation on Akamai Cloud dedicated to running hosted coding agents
 (opencode, Claude Code, Codex, GitHub Copilot). The baseline is
-`g7-dedicated-16-8` (8 dedicated vCPUs, 16 GiB RAM, 320 GiB disk allowance). It
+`g8-dedicated-16-4` (4 dedicated Zen 5 vCPUs, 16 GiB RAM, 160 GB disk allowance). It
 also runs containers, small CPU PyTorch experiments, and small local CPU LLMs
 (≤14B-class) as a secondary, occasional use. GPU execution and Kubeflow belong
 to the separate `idvoretskyi/akamai-lke-gpu-cluster` repository and cluster,
@@ -53,9 +53,11 @@ the correct deployment state and a separately reviewed infrastructure plan.
 - Run a VM resize from outside that VM. SSH and tmux processes will be lost on
   reboot. Keep `resize_disk = false` unless disk expansion is explicitly approved.
 - A downsize only succeeds if the instance's allocated disks already fit the
-  target plan's allowance (e.g. 320 GiB for `g7-dedicated-16-8`). Verify this
-  before planning; disk shrink is a separate, powered-off, manually approved
-  operation, never a side effect of a plan change.
+  target plan's allowance (e.g. `g8-dedicated-16-4` is labelled 160 GB but its
+  API-reported allowance is 167,936 MiB). Compare exact MiB totals via
+  `linode-cli linodes disks-list <id>`, not rounded GB labels, before planning;
+  disk shrink is a separate, powered-off, manually approved operation, never a
+  side effect of a plan change.
 - Paid backups remain disabled. Before disruptive work, identify uncommitted
   changes and local-only data; GitHub only preserves what has been pushed.
 - State, plans, tfvars, tokens, passwords, and kubeconfigs may contain secrets.

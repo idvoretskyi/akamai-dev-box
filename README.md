@@ -4,11 +4,13 @@
 [![Validate](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/validate.yml)
 [![Trivy Security Scan](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml/badge.svg)](https://github.com/idvoretskyi/akamai-dev-box/actions/workflows/trivy.yml)
 
-OpenTofu configuration for a personal, always-on Ubuntu 26.04 LTS dev box on [Akamai Cloud](https://www.linode.com/), dedicated to running hosted coding agents — opencode, Claude Code, Codex, and GitHub Copilot. Baseline: **g7-dedicated-16-8** (8 dedicated vCPUs / 16 GiB RAM / 320 GiB disk, **$173/month**). Explicit variables override local Linode CLI defaults, which override built-in fallbacks; the example pins the baseline plan.
+OpenTofu configuration for a personal, always-on Ubuntu 26.04 LTS dev box on [Akamai Cloud](https://www.linode.com/), dedicated to running hosted coding agents — opencode, Claude Code, Codex, and GitHub Copilot. Baseline: **g8-dedicated-16-4** (4 dedicated Zen 5 vCPUs / 16 GiB RAM / 160 GB disk, **$0.21/hour, no monthly cap, ≈$151–156/month**). Explicit variables override local Linode CLI defaults, which override built-in fallbacks; the example pins the baseline plan.
 
 Connect through Termius or another SSH client, keep agents in tmux, and use the box for builds, containers, small CPU PyTorch experiments, and small local CPU LLMs. GPU training and Kubeflow execution belong to the separate [akamai-lke-gpu-cluster](https://github.com/idvoretskyi/akamai-lke-gpu-cluster) lab. This repo does not install Kubeflow or CUDA on the dev box.
 
 Paid backups are disabled. Pricing is the London base rate, excluding taxes, additional services, and usage charges. Configuration changes alone do not resize an existing instance.
+
+> **Network transfer:** G8 Dedicated plans carry no bundled outbound transfer allowance and are billed for all outbound traffic at usage-based rates ($0.005/GiB in `gb-lon`), regardless of the account's global transfer pool. A coding-agent workload's outbound (mostly API request bodies, not responses) typically runs single-digit GiB/month — cents. Check current usage with `linode-cli linodes transfer-view <linode-id>`. Break-even vs. the previous `g7-dedicated-16-8` baseline (6 TB bundled, $173/month cap) is around 4 TiB/month of outbound. If a future workload (e.g. an LKE cluster running Ollama) talks to this box, place that cluster in `gb-lon` and use a VPC or IPv6 address — same-datacenter private traffic is unmetered.
 
 ## What's included
 
@@ -45,7 +47,7 @@ Key variables (`tofu/variables.tf`):
 
 | Variable | Default | Notes |
 |---|---|---|
-| `region` / `instance_type` / `image` | from `~/.config/linode-cli` (keys: `region`, `type`, `image`) | fallback: `gb-lon` / `g7-dedicated-16-8` / `linode/ubuntu26.04`; example pins the plan |
+| `region` / `instance_type` / `image` | from `~/.config/linode-cli` (keys: `region`, `type`, `image`) | fallback: `gb-lon` / `g8-dedicated-16-4` / `linode/ubuntu26.04`; example pins the plan |
 | `authorized_keys`, `root_pass` | — | required |
 | `dotfiles_repo` | [idvoretskyi/dotfiles](https://github.com/idvoretskyi/dotfiles) | cloned to `~/.dotfiles`, installed unattended; `""` skips |
 | `git_user_name` / `git_user_email` | — | optional; written to `~/.gitconfig.local` on the box |
@@ -60,21 +62,21 @@ Supported images: any `linode/ubuntu<NN>.<NN>` slug (e.g. `linode/ubuntu26.04`, 
 ## Scaling
 
 ```
-g6-standard-6       6 vCPU (shared)    / 16 GB / 320 GB — $96/mo   (budget alternative, same RAM/disk)
-g7-dedicated-4-2    2 vCPU (dedicated) /  4 GB /  80 GB —  $43/mo
-g7-dedicated-8-4    4 vCPU (dedicated) /  8 GB / 160 GB —  $86/mo
-g7-dedicated-16-8   8 vCPU (dedicated) / 16 GB / 320 GB — $173/mo  (baseline)
-g7-dedicated-32-16 16 vCPU (dedicated) / 32 GB / 640 GB — $346/mo  (previous baseline; needed for 30B-class local MoE models)
-g7-dedicated-64-32 32 vCPU (dedicated) / 64 GB / 1280 GB — $691/mo
+g6-standard-6       6 vCPU (shared)  / 16 GB / 320 GB — $96/mo   (budget alternative; bundled 6 TB transfer)
+g8-dedicated-8-4    4 vCPU (Zen 5)   /  8 GB /  80 GB — ~$102/mo (0.14/hr)
+g8-dedicated-16-4   4 vCPU (Zen 5)   / 16 GB / 160 GB — ~$153/mo (0.21/hr, baseline)
+g8-dedicated-16-8   8 vCPU (Zen 5)   / 16 GB / 160 GB — ~$197/mo (0.27/hr; more parallel throughput, e.g. -j8 builds or CPU LLM prompt processing)
+g8-dedicated-32-8   8 vCPU (Zen 5)   / 32 GB / 320 GB — ~$307/mo (0.42/hr)
+g8-dedicated-32-16 16 vCPU (Zen 5)   / 32 GB / 320 GB — ~$394/mo (0.54/hr; 30B-class local MoE models)
 ```
 
-Plan sizes use Linode's GB labels; RAM and disk allowances correspond to GiB. Prices are the London (`gb-lon`) base rate; `id-cgk` and `br-gru` carry a regional uplift (roughly +20% and +40%). `g6-standard-6` is a shared-CPU alternative with identical RAM and disk at a lower price, useful if dedicated CPU isn't required.
+Plan sizes use Linode's published GB labels; when resize safety matters, rely on the API-reported MiB totals documented below rather than assuming the disk allowance maps exactly to the label. Prices are the London (`gb-lon`) hourly rate × ~730 hours; `id-cgk` and `br-gru` carry a regional uplift (roughly +20% and +40%). Since 2026-07-01, G8 Dedicated plans (like GPU Linodes) are billed hourly with **no monthly cap** — the figures above are indicative, not a hard ceiling; see [Understanding how billing works](https://techdocs.akamai.com/cloud-computing/docs/understanding-how-billing-works). `g6-standard-6` is a shared-CPU alternative with identical RAM and disk, useful if dedicated CPU isn't required, and it still carries a bundled transfer allowance unlike the G8 plans above. The previous baseline was `g7-dedicated-16-8` (8 dedicated Zen 3 vCPUs / 16 GiB RAM / 320 GiB disk, $173/month cap, 6 TB bundled transfer) — its larger disk allowance and parallel throughput may still suit workloads that don't fit `g8-dedicated-16-8`.
 
 ## Resize an existing instance
 
 1. Work from the machine that owns the deployment state (e.g. your MacBook) — never from the dev box being resized, and never from missing state.
 2. Push every working repository and back up local-only data first; a resize reboots the box and SSH/tmux sessions do not survive.
-3. **Downsizing:** the target plan's disk allowance must already fit the instance's current disks (320 GiB for `g7-dedicated-16-8`). Check with `linode-cli linodes disks-list <id>` or Cloud Manager; disk shrink is a separate, powered-off, manually approved step, never a side effect of this plan.
+3. **Downsizing:** the target plan's disk allowance must already fit the instance's current disks — compare exact totals, not rounded GB labels: `g8-dedicated-16-4` is labelled 160 GB but its API-reported allowance is 167,936 MiB, and this repo's existing instance's disks total 163,840 MiB (163,328 MiB ext4 + 512 MiB swap), so they fit with headroom. Check exact disk totals with `linode-cli linodes disks-list <id>` (sizes in MiB) or Cloud Manager; disk shrink is a separate, powered-off, manually approved step, never a side effect of this plan.
 4. Read the exact `metadata.user_data` out of verified state and write it directly to a private, ignored `*.auto.tfvars.json` file — do not print it to the terminal, since it may embed the Linode API token when `seed_linode_cli` was enabled:
    ```sh
    (umask 077 && tofu -chdir=tofu show -json | jq \
@@ -85,6 +87,8 @@ Plan sizes use Linode's GB labels; RAM and disk allowances correspond to GiB. Pr
    `umask 077` keeps the file `0600` as it's created; never `cat`, log, or commit it. Any other diff in the rendered cloud-init forces replacement (`user_data` is `ForceNew`), which `prevent_destroy` blocks outright.
 5. Change only `instance_type`. Generate a saved plan and confirm it shows a single in-place `type` update — no replacement, disk, or firewall changes.
 6. Apply in a maintenance window (cold migration = reboot). Reconnect and verify `nproc`, `free -h`, `df -h`, `swapon --show`, and `systemctl --failed` match the target plan; zram adjusts to RAM/2 on reboot.
+
+Resizing more than once within a billing month produces a separate prorated invoice line item per plan used (each billed only for its active hours; no double-charging) — expect a noisier invoice, not an inflated one.
 
 If startup fails, use Lish to investigate rather than rebuilding immediately.
 
@@ -102,6 +106,8 @@ If reconciliation isn't feasible and a plan requires replacing the instance: rem
 | Kubernetes clients and dashboard tunnels | Cluster monitoring and GPU management |
 
 Use separate worktrees and distinct Compose project names, ports, and volumes for concurrent projects. Worktrees are not security boundaries. Scope agent credentials; Docker-group membership and sudo provide privileged host access.
+
+If a future LKE cluster runs Ollama or another service this box talks to, place that cluster in `gb-lon` and connect over a VPC or IPv6 address rather than public IPv4 — same-datacenter private traffic doesn't count against either side's network transfer.
 
 ### Local LLM inference (optional)
 
