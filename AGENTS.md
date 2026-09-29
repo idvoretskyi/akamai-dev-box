@@ -18,7 +18,8 @@ not this VM.
 - `tofu/cloud-init/main.yaml.tpl`: first-boot system and user configuration.
 - `tofu/cloud-init/devbox-init.sh.tpl`: first-boot installation script.
 - `tofu/terraform.tfvars.example`: non-secret example deployment inputs.
-- `.github/workflows/validate.yml`: formatting and configuration checks.
+- `scripts/check-cloud-init.sh`: offline render and lint of the cloud-init templates.
+- `.github/workflows/`: `validate.yml`, `trivy.yml`, `sbom.yml`; actions pinned by SHA.
 
 Explicit variables override CLI defaults, which override built-in fallbacks.
 Keep defaults, variable descriptions, the example, and README consistent. Pin
@@ -33,12 +34,17 @@ Run from the repository root:
 tofu -chdir=tofu fmt -check -recursive -diff
 tofu -chdir=tofu init -backend=false -lockfile=readonly
 tofu -chdir=tofu validate
+scripts/check-cloud-init.sh
 git diff --check
 ```
 
-For template edits, render with synthetic, non-secret inputs in an isolated
-temporary directory. Check rendered YAML and shell syntax without executing
-bootstrap scripts. Exercise both optional CLI-seeding and dotfiles branches.
+`scripts/check-cloud-init.sh` renders the templates with synthetic, non-secret
+inputs in an isolated temporary directory, for both the all-features and the
+all-optional-branches-off scenarios (CLI seeding, dotfiles). It checks YAML,
+cloud-init schema, `bash -n`, shellcheck and the user_data size limit, and never
+executes the bootstrap script. Any edit to the templates changes the rendered
+`user_data`: an existing instance then needs `deployment_user_data_base64`
+pinned (see README), or the plan will show a forced replacement.
 Validation does not prove an existing-instance resize is safe; that requires
 the correct deployment state and a separately reviewed infrastructure plan.
 

@@ -166,10 +166,11 @@ See [AGENTS.md](AGENTS.md) for repository layout and operational safeguards.
 tofu -chdir=tofu fmt -check -recursive -diff
 tofu -chdir=tofu init -backend=false -lockfile=readonly
 tofu -chdir=tofu validate
+scripts/check-cloud-init.sh          # needs tofu/terraform and python3 + PyYAML; shellcheck and cloud-init optional
 git diff --check
 ```
 
-These checks do not create or resize infrastructure.
+These checks do not create or resize infrastructure. Editing the cloud-init templates changes the rendered `user_data`; for the existing instance, pin `deployment_user_data_base64` first (see [Resize an existing instance](#resize-an-existing-instance)) or the plan will show a forced replacement, which `prevent_destroy` blocks.
 
 ## Troubleshooting
 

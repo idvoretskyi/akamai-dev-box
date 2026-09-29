@@ -126,6 +126,11 @@ variable "authorized_keys" {
   default     = []
 
   validation {
+    condition     = length(var.authorized_keys) > 0
+    error_message = "Provide at least one SSH public key: root login and password authentication are disabled, so a box without a key is reachable only through Lish."
+  }
+
+  validation {
     condition     = alltrue([for key in var.authorized_keys : can(regex("^(ssh-(rsa|ed25519|dss)|ecdsa-sha2-nistp(256|384|521)) ", key))])
     error_message = "Each authorized key must be a valid SSH public key (ssh-rsa, ssh-ed25519, ssh-dss, ecdsa-sha2-nistp*)."
   }

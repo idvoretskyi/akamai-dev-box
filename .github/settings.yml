@@ -32,6 +32,8 @@ branches:
         required_approving_review_count: 0
       required_status_checks:
         strict: true
-        contexts: []
+        contexts:
+          - OpenTofu fmt + validate
+          - Scan
       enforce_admins: false
       restrictions: null

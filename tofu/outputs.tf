@@ -70,12 +70,7 @@ output "firewall_status" {
 ###############################################################################
 
 output "ssh_command" {
-  description = "SSH as root."
-  value       = local.have_ip ? "ssh root@${local.ipv4}" : null
-}
-
-output "ssh_command_user" {
-  description = "SSH as the non-root user."
+  description = "SSH as the non-root user (root login is disabled)."
   value       = local.have_ip ? "ssh ${local.username}@${local.ipv4}" : null
 }
 

@@ -18,6 +18,7 @@ try_install() {
 # User-context variant.
 try_install_user() {
   local label="$1" cmd="$2"
+  # shellcheck disable=SC2024  # the log is root-owned; the redirect must run as root
   ( sudo -u "$DEVBOX_USER" env HOME="/home/$DEVBOX_USER" bash -c "$cmd" >> "$LOG" 2>&1 ) \
     || echo "$label install FAILED (non-fatal — re-run manually after SSH)" >> "$LOG"
 }
@@ -38,6 +39,24 @@ curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
 curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
   -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
 chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+
+# Sources are written only now that their Signed-By keyrings exist.
+cat > /etc/apt/sources.list.d/vscode.sources <<VSCODE
+Types: deb
+URIs: https://packages.microsoft.com/repos/code
+Suites: stable
+Components: main
+Architectures: amd64
+Signed-By: /etc/apt/keyrings/packages.microsoft.gpg
+VSCODE
+cat > /etc/apt/sources.list.d/github-cli.sources <<GHCLI
+Types: deb
+URIs: https://cli.github.com/packages
+Suites: stable
+Components: main
+Architectures: amd64
+Signed-By: /etc/apt/keyrings/githubcli-archive-keyring.gpg
+GHCLI
 
 # Docker CE — codename-aware deb822 source
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
@@ -89,8 +108,8 @@ install -d -o "$DEVBOX_USER" -g "$DEVBOX_USER" -m 0755 \
   "/home/$DEVBOX_USER/.config" \
   "/home/$DEVBOX_USER/.zfunc"
 
-# linode-cli (serial — must precede completions)
-sudo -u "$DEVBOX_USER" bash -lc 'pipx ensurepath && pipx install linode-cli'
+# linode-cli (serial — must precede completions; fail-open like the rest)
+try_install_user "linode-cli" 'pipx ensurepath && pipx install linode-cli'
 
 # Phase 4b: system installs — parallel
 
