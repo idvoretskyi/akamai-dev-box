@@ -33,6 +33,9 @@ labels:
     color: "0075ca"
     description: Improvements or additions to documentation
 
+# Solo-maintainer safe: 0 required reviews (you can merge your own PRs) and
+# enforce_admins false (an admin can bypass a stuck or renamed check).
+# Do not raise the review count without adding a second maintainer.
 branches:
   - name: main
     protection:
