@@ -6,7 +6,7 @@
 
 OpenTofu configuration for a personal, always-on Ubuntu 26.04 LTS dev box on [Akamai Cloud](https://www.linode.com/), built to run hosted coding agents (opencode, Claude Code, Codex, GitHub Copilot). Connect over SSH, keep agents in tmux, and use it for builds, containers, and small CPU experiments.
 
-Baseline: **g8-dedicated-16-4** (4 dedicated vCPUs, 16 GiB RAM, 160 GB disk), $0.21/hour, about $153/month. Paid backups are off. GPU training and Kubeflow live in [akamai-lke-gpu-cluster](https://github.com/idvoretskyi/akamai-lke-gpu-cluster), not here.
+Baseline: **g8-dedicated-16-4** (4 dedicated vCPUs, 16 GiB RAM, 160 GB disk), $0.21/hour, about $153/month, billed hourly with no monthly cap and metered outbound transfer ([details](docs/operations.md#billing)). Paid backups are off. GPU training and Kubeflow live in [akamai-lke-gpu-cluster](https://github.com/idvoretskyi/akamai-lke-gpu-cluster), not here.
 
 ## What's included
 
@@ -50,19 +50,6 @@ Precedence: explicit variable, then `~/.config/linode-cli`, then built-in fallba
 | `deployment_user_data_base64` | unset | sensitive; for resizes only, see [operations](docs/operations.md#resize-an-existing-instance) |
 
 Pin `region`, `username`, and `instance_label` for repeatable deployments. State uses the local backend (`tofu/backend.tf`). The instance sets `resize_disk = false` and `prevent_destroy = true`.
-
-## Plans
-
-```
-g8-dedicated-8-4    4 vCPU /  8 GB /  80 GB  ~$102/mo
-g8-dedicated-16-4   4 vCPU / 16 GB / 160 GB  ~$153/mo  (baseline)
-g8-dedicated-16-8   8 vCPU / 16 GB / 160 GB  ~$197/mo
-g8-dedicated-32-8   8 vCPU / 32 GB / 320 GB  ~$307/mo
-g8-dedicated-32-16 16 vCPU / 32 GB / 320 GB  ~$394/mo
-g6-standard-6       6 vCPU (shared) / 16 GB / 320 GB  ~$96/mo
-```
-
-London rates, indicative only: G8 has no monthly cap and outbound transfer is metered. Details in [docs/operations.md](docs/operations.md#billing-and-plans).
 
 ## Documentation
 

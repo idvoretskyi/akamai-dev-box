@@ -2,14 +2,11 @@
 
 Runbooks and cost notes for the existing dev box. Repository safety rules live in [AGENTS.md](../AGENTS.md).
 
-## Billing and plans
+## Billing
 
 - G8 Dedicated plans are billed hourly with **no monthly cap** since 2026-07-01. Monthly figures in the README are indicative (London hourly rate x ~730 h), excluding taxes, additional services, and usage.
-- `id-cgk` and `br-gru` carry a regional uplift (roughly +20% and +40%).
 - Plan sizes use Linode's GB labels; for resize safety rely on API-reported MiB totals (see below).
-- `g6-standard-6` is a shared-CPU alternative with the same RAM and disk, and it still has bundled transfer.
-- The previous baseline was `g7-dedicated-16-8` (8 dedicated Zen 3 vCPUs / 16 GiB / 320 GiB disk, $173/month cap, 6 TB bundled transfer). Its larger disk may suit workloads that do not fit `g8-dedicated-16-8`.
-- Resizing more than once in a billing month gives one prorated invoice line per plan used. The invoice is noisier, not larger.
+- Resizing more than once in a billing month produces a separate prorated invoice line per plan used. Each plan is billed only for its active hours, so there is no double-charging, but the total reflects whichever plans ran and for how long.
 
 See [Understanding how billing works](https://techdocs.akamai.com/cloud-computing/docs/understanding-how-billing-works).
 
@@ -19,7 +16,6 @@ G8 Dedicated plans have no bundled outbound allowance. All outbound traffic is b
 
 - Coding-agent traffic is mostly request bodies: typically single-digit GiB/month, i.e. cents.
 - Check usage: `linode-cli linodes transfer-view <linode-id>`.
-- Break-even against `g7-dedicated-16-8` is about 4 TiB/month of outbound.
 - If a cluster (e.g. LKE running Ollama) talks to this box, put it in `gb-lon` and use a VPC or IPv6 address. Same-datacenter private traffic is unmetered.
 
 ## Resize an existing instance

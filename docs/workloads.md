@@ -26,7 +26,7 @@ curl -fsSL https://ollama.com/install.sh | sh   # listens on 127.0.0.1:11434
 ollama run gemma4:12b
 ```
 
-Keep it on localhost (`ssh -L 11434:127.0.0.1:11434 $USER-dev-box`), avoid running it beside heavy builds, and expect 27B+ models to need the 32 GiB tier.
+Keep it on localhost (`ssh -L 11434:127.0.0.1:11434 $USER-dev-box`), avoid running it beside heavy builds, and 27B+ models do not fit in 16 GiB.
 
 ## Python and PyTorch
 
