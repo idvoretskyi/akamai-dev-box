@@ -3,7 +3,7 @@
 ###############################################################################
 
 variable "linode_token" {
-  description = "Akamai (Linode) API token. Optional — auto-detected from ~/.config/linode-cli (default-user's token), then falls back to the LINODE_TOKEN env var."
+  description = "Akamai (Linode) API token. Optional — when unset, the provider falls back to the LINODE_TOKEN environment variable."
   type        = string
   default     = null
   nullable    = true

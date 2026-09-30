@@ -32,7 +32,7 @@ jobs:
 
       - name: Render cloud-init and check YAML, schema, bash -n, shellcheck, size
         run: |
-          python3 -m pip install --user --quiet pyyaml
+          python3 -m pip install --user --quiet --require-hashes --only-binary=:all: -r .github/workflows/requirements-cloud-init.txt
           ./scripts/check-cloud-init.sh
 
   actions:

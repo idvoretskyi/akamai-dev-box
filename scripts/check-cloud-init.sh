@@ -96,9 +96,19 @@ assert "/etc/sudoers.d/90-devbox-nopasswd" not in paths, "duplicate sudo rule re
 print("ok   [%s] yaml" % name)
 PY
 
-  bash -n "$work/$scenario.sh" && echo "ok   [$scenario] bash -n"
+  if bash -n "$work/$scenario.sh"; then
+    echo "ok   [$scenario] bash -n"
+  else
+    echo "FAIL [$scenario]: bash -n" >&2
+    fail=1
+  fi
   if command -v shellcheck > /dev/null; then
-    shellcheck -s bash -S warning "$work/$scenario.sh" && echo "ok   [$scenario] shellcheck"
+    if shellcheck -s bash -S warning "$work/$scenario.sh"; then
+      echo "ok   [$scenario] shellcheck"
+    else
+      echo "FAIL [$scenario]: shellcheck" >&2
+      fail=1
+    fi
   else
     echo "skip [$scenario] shellcheck not installed"
   fi

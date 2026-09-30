@@ -69,8 +69,8 @@ output "firewall_status" {
 # Operational helpers (eval the -raw output to run them)
 ###############################################################################
 
-output "ssh_command" {
-  description = "SSH as the non-root user (root login is disabled)."
+output "ssh_command_user" {
+  description = "SSH as the non-root user."
   value       = local.have_ip ? "ssh ${local.username}@${local.ipv4}" : null
 }
 
