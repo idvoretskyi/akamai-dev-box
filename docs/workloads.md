@@ -43,7 +43,7 @@ This is a CPU-only smoke setup. Pin dependencies, bound thread/DataLoader worker
 
 ## Remote Kubernetes access
 
-The LKE repository owns cluster provisioning and kubeconfig. Obtain credentials securely and keep them out of Git. Always pass `--context` and `--namespace`.
+The LKE repository owns cluster provisioning and kubeconfig. Obtain credentials securely and keep them out of Git. Pass `--context` on every cluster command and `--namespace` on namespaced ones; do not change the global context implicitly.
 
 ```sh
 kubectl config get-contexts
