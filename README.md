@@ -63,10 +63,11 @@ Pin `region`, `username`, and `instance_label` for repeatable deployments. State
 tofu -chdir=tofu fmt -check -recursive -diff
 tofu -chdir=tofu init -backend=false -lockfile=readonly
 tofu -chdir=tofu validate
+scripts/check-cloud-init.sh          # needs tofu/terraform and python3 + PyYAML; shellcheck and cloud-init optional
 git diff --check
 ```
 
-These do not create or resize infrastructure.
+These checks do not create or resize infrastructure. Editing the cloud-init templates changes the rendered `user_data`; for the existing instance, pin `deployment_user_data_base64` first (see [Resize an existing instance](docs/operations.md#resize-an-existing-instance)) or the plan will show a forced replacement, which `prevent_destroy` blocks.
 
 ## Troubleshooting
 

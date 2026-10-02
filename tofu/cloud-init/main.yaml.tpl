@@ -63,25 +63,9 @@ write_files:
       APT::Install-Recommends "false";
       APT::Install-Suggests "false";
 
-  # VS Code apt source
-  - path: /etc/apt/sources.list.d/vscode.sources
-    content: |
-      Types: deb
-      URIs: https://packages.microsoft.com/repos/code
-      Suites: stable
-      Components: main
-      Architectures: amd64
-      Signed-By: /etc/apt/keyrings/packages.microsoft.gpg
-
-  # GitHub CLI apt source
-  - path: /etc/apt/sources.list.d/github-cli.sources
-    content: |
-      Types: deb
-      URIs: https://cli.github.com/packages
-      Suites: stable
-      Components: main
-      Architectures: amd64
-      Signed-By: /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  # Third-party apt sources (VS Code, GitHub CLI, Docker) are written by the
+  # bootstrap script after their signing keys are downloaded, so cloud-init's
+  # own apt update never sees a repository it cannot verify.
 
   # zram: RAM/2, zstd, high swap priority
   - path: /etc/systemd/zram-generator.conf
@@ -114,11 +98,6 @@ write_files:
   - path: /etc/default/earlyoom
     content: |
       EARLYOOM_ARGS="-r 60 -m 5 -s 5 --avoid '(^|/)(sshd|tmux|systemd|zsh)$'"
-
-  - path: /etc/sudoers.d/90-devbox-nopasswd
-    permissions: '0440'
-    content: |
-      %sudo ALL=(ALL) NOPASSWD:ALL
 
   - path: /etc/ssh/sshd_config.d/99-devbox.conf
     content: |
@@ -253,7 +232,7 @@ write_files:
           arrow='\001\033[1;31m\002➜\001\033[0m\002'
         fi
         local dir='\001\033[1;31m\002\W\001\033[0m\002'
-        PS1="$${arrow}  $${dir}$$(_devbox_git_prompt) "
+        PS1="$arrow  $dir$(_devbox_git_prompt) "
       }
 
       PROMPT_COMMAND='_devbox_root_ps1'
