@@ -23,9 +23,8 @@ authorized_keys = [
 # Generate with: openssl rand -base64 32
 root_pass = "CHANGE_ME_TO_A_STRONG_PASSWORD_AT_LEAST_16_CHARS"
 
-# 4 dedicated Zen 5 vCPUs / 16 GiB RAM / 160 GB disk allowance.
-# $0.21/hour, no monthly cap (~$151-156/month); outbound transfer is metered
-# (not pooled) at $0.005/GiB in gb-lon — see README's "Network transfer" note.
+# 4 dedicated vCPUs / 16 GiB / 160 GB, ~$0.21/hour. Outbound transfer is
+# metered; see docs/operations.md.
 instance_type = "g8-dedicated-16-4"
 
 ###############################################################################
@@ -82,8 +81,6 @@ instance_type = "g8-dedicated-16-4"
 # Existing-instance resize only — do not set here
 ###############################################################################
 
-# deployment_user_data_base64 pins an existing deployment's exact original
-# metadata.user_data to keep a resize in place (see README's "Resize an
-# existing instance"). It is state-derived and deployment-specific: set it
-# only in a private, ignored *.auto.tfvars.json file (matched by .gitignore,
-# mode 0600), never here and never committed.
+# deployment_user_data_base64 keeps a resize in place (see docs/operations.md,
+# "Resize an existing instance"). Set it only in a private, ignored
+# *.auto.tfvars.json file (mode 0600), never here.

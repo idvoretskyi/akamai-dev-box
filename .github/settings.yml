@@ -1,6 +1,6 @@
 repository:
   name: akamai-dev-box
-  description: OpenTofu configuration for a development box on Akamai Cloud
+  description: OpenTofu configuration for a personal Ubuntu dev box on Akamai Cloud for hosted coding agents
   topics:
     - akamai
     - linode
@@ -8,6 +8,11 @@ repository:
     - terraform
     - infrastructure-as-code
     - devbox
+    - ubuntu
+    - coding-agents
+    - claude-code
+    - opencode
+    - docker
   private: false
   has_issues: true
   has_projects: false
@@ -24,7 +29,13 @@ labels:
   - name: ci
     color: "1d76db"
     description: Changes to CI workflows and automation
+  - name: documentation
+    color: "0075ca"
+    description: Improvements or additions to documentation
 
+# Solo-maintainer safe: 0 required reviews (you can merge your own PRs) and
+# enforce_admins false (an admin can bypass a stuck or renamed check).
+# Do not raise the review count without adding a second maintainer.
 branches:
   - name: main
     protection:
@@ -34,6 +45,9 @@ branches:
         strict: true
         contexts:
           - OpenTofu fmt + validate
+          - actionlint
           - Scan
       enforce_admins: false
       restrictions: null
+      allow_force_pushes: false
+      allow_deletions: false

@@ -20,6 +20,8 @@ not this VM.
 - `tofu/terraform.tfvars.example`: non-secret example deployment inputs.
 - `scripts/check-cloud-init.sh`: offline render and lint of the cloud-init templates.
 - `.github/workflows/`: `validate.yml`, `trivy.yml`, `sbom.yml`; actions pinned by SHA.
+- `docs/operations.md`: billing, resize runbook, intentional replacement.
+- `docs/workloads.md`: local LLM, PyTorch, Kubernetes, and k3s notes.
 
 Explicit variables override CLI defaults, which override built-in fallbacks.
 Keep defaults, variable descriptions, the example, and README consistent. Pin
@@ -75,7 +77,7 @@ the correct deployment state and a separately reviewed infrastructure plan.
   `terraform.tfvars.example` or any committed file.
 - `linode_instance.dev_box` has `prevent_destroy = true`. Do not remove it to
   work around a failing plan; only remove it for a deliberately reviewed,
-  separately approved replacement (see README's "Intentional replacement"),
+  separately approved replacement (see docs/operations.md, "Intentional replacement"),
   and prefer restoring the guard afterward.
 - Use scoped credentials. Docker-group access and sudo are privileged, not
   agent sandboxes. Avoid printing secrets in tool output or logs.
