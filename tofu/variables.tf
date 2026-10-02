@@ -27,7 +27,7 @@ variable "region" {
 }
 
 variable "instance_type" {
-  description = "Akamai (Linode) instance plan. Optional; inherits from ~/.config/linode-cli, then falls back to g8-dedicated-16-4 (4 dedicated Zen 5 vCPUs / 16 GiB RAM / 160 GB disk allowance)."
+  description = "Akamai (Linode) plan. Optional; inherits from ~/.config/linode-cli, then falls back to g8-dedicated-16-4 (4 vCPUs / 16 GiB / 160 GB)."
   type        = string
   default     = null
   nullable    = true
@@ -109,7 +109,7 @@ variable "backups_enabled" {
 ###############################################################################
 
 variable "username" {
-  description = "Non-root Linux user to create on the box. Defaults to the local $USER at apply time (override via TF_VAR_username or $DEVBOX_USER). Must be a valid Linux username."
+  description = "Non-root Linux user to create. Defaults to the local $USER at apply time (override via TF_VAR_username or $DEVBOX_USER)."
   type        = string
   default     = null
   nullable    = true
@@ -179,7 +179,7 @@ variable "allowed_ssh_cidrs_ipv6" {
 ###############################################################################
 
 variable "deployment_user_data_base64" {
-  description = "Exact base64 metadata.user_data from an existing deployment's verified state. Pin this for an existing-instance resize (e.g. a plan/type change): any diff in the rendered cloud-init forces replacement in the locked provider, so pinning the original payload keeps a compatible change in place instead of rebuilding. Set privately (e.g. in an ignored *.auto.tfvars.json, not committed) and never in terraform.tfvars.example. Null renders the current template, as for a fresh deployment."
+  description = "Exact base64 metadata.user_data from an existing deployment's state, pinned so a resize stays in place (any cloud-init diff forces replacement). Set only in an ignored *.auto.tfvars.json, never committed. Null renders the current template. See docs/operations.md."
   type        = string
   default     = null
   nullable    = true
@@ -192,7 +192,7 @@ variable "deployment_user_data_base64" {
 }
 
 variable "seed_linode_cli" {
-  description = "Seed ~/.config/linode-cli/cli on the box with the linode_token, region, instance_type, and image. Opt-in (default false) because the token grants full Linode account access — use a scoped token and only enable when you need linode-cli on the box."
+  description = "Seed ~/.config/linode-cli/cli on the box with the token, region, plan, and image. Opt-in: the token grants account access, so use a scoped token."
   type        = bool
   default     = false
 }
@@ -208,7 +208,7 @@ variable "extra_packages" {
 ###############################################################################
 
 variable "dotfiles_repo" {
-  description = "Git URL of a dotfiles repo cloned to ~/.dotfiles on first boot; its install.sh is run with --unattended --no-packages. Must be clonable without credentials (public https) unless you handle auth yourself. Set to \"\" to skip."
+  description = "Git URL of a dotfiles repo cloned to ~/.dotfiles on first boot and installed with --unattended --no-packages. Must be clonable without credentials. \"\" skips."
   type        = string
   default     = "https://github.com/idvoretskyi/dotfiles.git"
 
