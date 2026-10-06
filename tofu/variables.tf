@@ -3,7 +3,7 @@
 ###############################################################################
 
 variable "linode_token" {
-  description = "Akamai (Linode) API token. Optional — auto-detected from ~/.config/linode-cli (default-user's token), then falls back to the LINODE_TOKEN env var."
+  description = "Akamai (Linode) API token. Optional — when unset, the provider falls back to the LINODE_TOKEN environment variable."
   type        = string
   default     = null
   nullable    = true
@@ -124,6 +124,11 @@ variable "authorized_keys" {
   description = "List of SSH public keys authorised for the non-root user. Ed25519 recommended."
   type        = list(string)
   default     = []
+
+  validation {
+    condition     = length(var.authorized_keys) > 0
+    error_message = "Provide at least one SSH public key: root login and password authentication are disabled, so a box without a key is reachable only through Lish."
+  }
 
   validation {
     condition     = alltrue([for key in var.authorized_keys : can(regex("^(ssh-(rsa|ed25519|dss)|ecdsa-sha2-nistp(256|384|521)) ", key))])

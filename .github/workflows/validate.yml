@@ -6,30 +6,38 @@ on:
   pull_request:
     branches: ["main"]
 
+permissions:
+  contents: read
+
 jobs:
   tofu:
     name: OpenTofu fmt + validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: opentofu/setup-opentofu@v2
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
 
       - name: tofu fmt
         run: tofu fmt -check -recursive -diff
         working-directory: tofu
 
-      - name: tofu init (no backend)
-        run: tofu init -backend=false
+      - name: tofu init (no backend, locked providers)
+        run: tofu init -backend=false -lockfile=readonly
         working-directory: tofu
 
       - name: tofu validate
         run: tofu validate
         working-directory: tofu
 
+      - name: Render cloud-init and check YAML, schema, bash -n, shellcheck, size
+        run: |
+          python3 -m pip install --user --quiet --require-hashes --only-binary=:all: -r .github/workflows/requirements-cloud-init.txt
+          ./scripts/check-cloud-init.sh
+
   actions:
     name: actionlint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: raven-actions/actionlint@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
